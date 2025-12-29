@@ -325,13 +325,13 @@ export function useConnectorData() {
     // Create the job
     const { data: job, error: jobError } = await supabase
       .from('pipeline_jobs')
-      .insert({
+      .insert([{
         user_id: user.id,
         connector_id: connector.id,
         type: 'tool_execution',
-        status: 'queued',
-        input: args,
-      })
+        status: 'queued' as const,
+        input: args as Database['public']['Tables']['pipeline_jobs']['Insert']['input'],
+      }])
       .select()
       .single();
 
@@ -391,16 +391,16 @@ export function useConnectorData() {
       // Create action log
       await supabase
         .from('action_logs')
-        .insert({
+        .insert([{
           user_id: user.id,
           connector_id: connector.id,
           tool_name: toolName,
-          request: args,
+          request: args as Database['public']['Tables']['action_logs']['Insert']['request'],
           response: success ? { result: 'Sample output' } : null,
           status: success ? 'success' : 'error',
           error: success ? null : 'Simulated error',
           latency_ms: Math.floor(1500 + Math.random() * 500),
-        });
+        }]);
 
       fetchLogs();
     }, 2000);
