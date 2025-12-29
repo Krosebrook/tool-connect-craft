@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { ConnectorIcon } from '@/components/connectors/ConnectorIcon';
 import { ToolExecutor } from '@/components/connectors/ToolExecutor';
 import { JobCard } from '@/components/connectors/JobCard';
+import type { ToolSchema } from '@/types';
 import { 
   ArrowLeft, 
   Plug2, 
@@ -228,9 +229,13 @@ export default function ConnectorDetailPage() {
                       </div>
                       <ToolExecutor
                         tool={{
-                          ...activeTool,
+                          id: activeTool.id,
+                          name: activeTool.name,
+                          description: activeTool.description || '',
+                          source: activeTool.source,
                           connectorId: activeTool.connector_id,
                           createdAt: activeTool.created_at,
+                          schema: (activeTool.schema as unknown as ToolSchema) ?? { type: 'object', properties: {} },
                         }}
                         onExecute={(args) => handleExecuteTool(activeTool.name, args)}
                         isExecuting={executingTool === activeTool.name}
