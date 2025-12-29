@@ -17,9 +17,9 @@ export default function ConnectorsPage() {
   
   const filteredConnectors = connectors.filter(connector => {
     const matchesSearch = connector.name.toLowerCase().includes(search.toLowerCase()) ||
-      connector.description.toLowerCase().includes(search.toLowerCase());
+      (connector.description || '').toLowerCase().includes(search.toLowerCase());
     const matchesCategory = category === 'all' || 
-      connector.category.toLowerCase() === category.toLowerCase();
+      (connector.category || '').toLowerCase() === category.toLowerCase();
     return matchesSearch && matchesCategory;
   });
   
@@ -101,15 +101,28 @@ export default function ConnectorsPage() {
             : 'space-y-4'
         )}>
           {filteredConnectors.map((connector, index) => {
-            const connection = connections.find(c => c.connectorId === connector.id && c.status === 'active');
+            const connection = connections.find(c => c.connector_id === connector.id && c.status === 'active');
             return (
               <div 
                 key={connector.id}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <ConnectorCard
-                  connector={connector}
-                  connection={connection}
+                  connector={{
+                    ...connector,
+                    iconUrl: connector.icon_url,
+                    authType: connector.auth_type,
+                    isActive: connector.is_active ?? true,
+                    createdAt: connector.created_at,
+                  }}
+                  connection={connection ? {
+                    ...connection,
+                    userId: connection.user_id,
+                    connectorId: connection.connector_id,
+                    lastUsedAt: connection.last_used_at,
+                    createdAt: connection.created_at,
+                    updatedAt: connection.updated_at,
+                  } : undefined}
                   onConnect={() => handleConnect(connector.id)}
                   onDisconnect={() => connection && handleDisconnect(connection.id)}
                   isConnecting={connectingId === connector.id}

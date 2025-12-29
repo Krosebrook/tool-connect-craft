@@ -1,7 +1,6 @@
 import { Layout } from '@/components/layout/Layout';
 import { useConnectors } from '@/context/ConnectorContext';
 import { JobCard } from '@/components/connectors/JobCard';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { 
   Activity, 
@@ -9,8 +8,7 @@ import {
   CheckCircle2, 
   AlertCircle,
   Plug2,
-  ArrowRight,
-  RefreshCw
+  ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -83,7 +81,7 @@ export default function DashboardPage() {
             {recentJobs.length > 0 ? (
               <div className="space-y-3">
                 {recentJobs.map((job) => {
-                  const connector = connectors.find(c => c.id === job.connectorId);
+                  const connector = connectors.find(c => c.id === job.connector_id);
                   return (
                     <JobCard 
                       key={job.id} 
@@ -113,7 +111,7 @@ export default function DashboardPage() {
               {activeConnections.length > 0 ? (
                 <div className="space-y-3">
                   {activeConnections.map((conn) => {
-                    const connector = connectors.find(c => c.id === conn.connectorId);
+                    const connector = connectors.find(c => c.id === conn.connector_id);
                     if (!connector) return null;
                     return (
                       <Link
@@ -154,12 +152,12 @@ export default function DashboardPage() {
                       }`} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-mono text-foreground truncate">
-                          {log.toolName}
+                          {log.tool_name}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <span>{log.latencyMs.toFixed(0)}ms</span>
+                          <span>{(log.latency_ms ?? 0).toFixed(0)}ms</span>
                           <span>•</span>
-                          <span>{formatTimeAgo(log.createdAt)}</span>
+                          <span>{formatTimeAgo(log.created_at)}</span>
                         </div>
                       </div>
                     </div>

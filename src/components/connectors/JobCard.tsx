@@ -1,13 +1,16 @@
-import { PipelineJob, PipelineEvent } from '@/types';
 import { JobStatusBadge } from '@/components/ui/job-status-badge';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Clock, Terminal } from 'lucide-react';
 import { useState } from 'react';
 import { useConnectors } from '@/context/ConnectorContext';
 import { ConnectorIcon } from './ConnectorIcon';
+import type { Database } from '@/integrations/supabase/types';
+
+type DbPipelineJob = Database['public']['Tables']['pipeline_jobs']['Row'];
+type DbPipelineEvent = Database['public']['Tables']['pipeline_events']['Row'];
 
 interface JobCardProps {
-  job: PipelineJob;
+  job: DbPipelineJob;
   connector?: { slug: string; name: string };
   showEvents?: boolean;
 }
@@ -17,10 +20,10 @@ export function JobCard({ job, connector, showEvents = true }: JobCardProps) {
   const { events } = useConnectors();
   const jobEvents = events.get(job.id) || [];
   
-  const duration = job.finishedAt && job.startedAt
-    ? new Date(job.finishedAt).getTime() - new Date(job.startedAt).getTime()
-    : job.startedAt
-    ? Date.now() - new Date(job.startedAt).getTime()
+  const duration = job.finished_at && job.started_at
+    ? new Date(job.finished_at).getTime() - new Date(job.started_at).getTime()
+    : job.started_at
+    ? Date.now() - new Date(job.started_at).getTime()
     : null;
   
   return (
@@ -40,7 +43,7 @@ export function JobCard({ job, connector, showEvents = true }: JobCardProps) {
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm text-foreground">{job.toolName}</span>
+            <span className="font-mono text-sm text-foreground">{job.type}</span>
             <JobStatusBadge status={job.status} size="sm" />
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
@@ -55,7 +58,7 @@ export function JobCard({ job, connector, showEvents = true }: JobCardProps) {
         </div>
         
         <span className="text-xs text-muted-foreground">
-          {formatTime(job.createdAt)}
+          {formatTime(job.created_at)}
         </span>
       </div>
       
@@ -100,7 +103,7 @@ export function JobCard({ job, connector, showEvents = true }: JobCardProps) {
   );
 }
 
-function EventLine({ event }: { event: PipelineEvent }) {
+function EventLine({ event }: { event: DbPipelineEvent }) {
   return (
     <div className="flex items-start gap-2 text-xs font-mono py-1">
       <span className="text-muted-foreground shrink-0">

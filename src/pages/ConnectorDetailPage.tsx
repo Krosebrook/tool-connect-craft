@@ -9,7 +9,6 @@ import { JobCard } from '@/components/connectors/JobCard';
 import { 
   ArrowLeft, 
   Plug2, 
-  ExternalLink,
   RefreshCw,
   Settings,
   Trash2,
@@ -46,10 +45,10 @@ export default function ConnectorDetailPage() {
   }
   
   const { connection, tools = [] } = connectorData;
-  const status = connection?.status || 'none';
+  const status = connection?.status || 'pending';
   const isConnected = status === 'active';
   
-  const connectorJobs = jobs.filter(j => j.connectorId === connectorData.id);
+  const connectorJobs = jobs.filter(j => j.connector_id === connectorData.id);
   
   const handleConnect = async () => {
     setConnectingState('connecting');
@@ -131,13 +130,13 @@ export default function ConnectorDetailPage() {
                   <Code2 className="h-4 w-4" />
                   {tools.length} tools
                 </span>
-                {connection?.lastUsedAt && (
+                {connection?.last_used_at && (
                   <span className="flex items-center gap-1.5">
                     <Clock className="h-4 w-4" />
-                    Last used {new Date(connection.lastUsedAt).toLocaleDateString()}
+                    Last used {new Date(connection.last_used_at).toLocaleDateString()}
                   </span>
                 )}
-                <span className="capitalize">{connectorData.authType} auth</span>
+                <span className="capitalize">{connectorData.auth_type} auth</span>
               </div>
             </div>
             
@@ -228,7 +227,11 @@ export default function ConnectorDetailPage() {
                         <p className="text-sm text-muted-foreground">{activeTool.description}</p>
                       </div>
                       <ToolExecutor
-                        tool={activeTool}
+                        tool={{
+                          ...activeTool,
+                          connectorId: activeTool.connector_id,
+                          createdAt: activeTool.created_at,
+                        }}
                         onExecute={(args) => handleExecuteTool(activeTool.name, args)}
                         isExecuting={executingTool === activeTool.name}
                       />
