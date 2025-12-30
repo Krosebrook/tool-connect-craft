@@ -2,17 +2,49 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Authentication context type definition.
+ * Provides user authentication state and methods.
+ */
 interface AuthContextType {
+  /** Current authenticated user, null if not signed in */
   user: User | null;
+  /** Current session with access/refresh tokens */
   session: Session | null;
+  /** Loading state during initial auth check */
   loading: boolean;
+  /** Sign in with email and password */
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  /** Create new account with email and password */
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  /** Sign out current user */
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Authentication provider component.
+ * 
+ * Manages user authentication state, listens to auth changes, and provides
+ * authentication methods to child components via Context API.
+ * 
+ * Features:
+ * - Automatic session restoration on page load
+ * - Real-time auth state synchronization
+ * - Persistent sessions via localStorage
+ * - Automatic token refresh
+ * 
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - Child components
+ * 
+ * @example
+ * ```tsx
+ * <AuthProvider>
+ *   <App />
+ * </AuthProvider>
+ * ```
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -79,6 +111,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Hook to access authentication context.
+ * 
+ * Must be used within an AuthProvider. Provides access to:
+ * - Current user and session
+ * - Authentication loading state
+ * - Sign in/up/out methods
+ * 
+ * @returns {AuthContextType} Authentication context value
+ * @throws {Error} If used outside of AuthProvider
+ * 
+ * @example
+ * ```tsx
+ * function Profile() {
+ *   const { user, loading, signOut } = useAuth();
+ *   
+ *   if (loading) return <Spinner />;
+ *   if (!user) return <Navigate to="/auth" />;
+ *   
+ *   return (
+ *     <div>
+ *       <p>Email: {user.email}</p>
+ *       <Button onClick={signOut}>Sign Out</Button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

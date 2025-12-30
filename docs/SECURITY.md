@@ -2,389 +2,349 @@
 
 ## Reporting a Vulnerability
 
-We take security seriously. If you discover a security vulnerability, please follow responsible disclosure:
+**Please do not report security vulnerabilities through public GitHub issues.**
 
-### How to Report
+If you discover a security vulnerability, please report it through [GitHub's private vulnerability reporting feature](https://github.com/Krosebrook/tool-connect-craft/security/advisories/new).
 
-**DO**:
-1. Email security@toolconnectcraft.dev (or create a private GitHub Security Advisory)
-2. Provide detailed information:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
-3. Allow reasonable time for us to respond (48-72 hours)
-4. Keep the vulnerability confidential until we've addressed it
+Include the following information:
+- Type of vulnerability
+- Full paths of affected source file(s)
+- Location of the affected code
+- Step-by-step instructions to reproduce
+- Proof-of-concept or exploit code (if possible)
+- Impact of the vulnerability
 
-**DO NOT**:
-- Open a public GitHub issue for security vulnerabilities
-- Share vulnerability details publicly before a fix is released
-- Exploit the vulnerability beyond what's necessary to demonstrate it
-
-### Response Timeline
-
-- **Acknowledgment**: Within 48 hours
-- **Initial Assessment**: Within 1 week
-- **Fix Development**: Varies by severity (critical: days, low: weeks)
-- **Public Disclosure**: After fix is deployed and users have time to update
-
-### Reward
-
-While we don't currently have a formal bug bounty program, we:
-- Acknowledge contributors in our security advisories
-- Provide swag/credits for significant findings (when possible)
-- Will consider bug bounty program in future versions
-
----
-
-## Supported Versions
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1   | :x:                |
-
-We recommend always using the latest version.
-
----
-
-## Security Features
-
-### Authentication & Authorization
-
-**Supabase Auth**:
-- Email/password authentication with verification
-- Secure session management with JWT
-- Automatic token refresh
-- Password hashing (bcrypt)
-
-**Row-Level Security (RLS)**:
-- Database-level access control
-- User can only access their own data
-- Policies enforced at PostgreSQL level
-- No data leakage between users
-
-**Protected Routes**:
-- Frontend route protection via `ProtectedRoute` component
-- Server-side validation via RLS
-- Session validation on every request
-
-### OAuth 2.0 Security
-
-**PKCE Flow**:
-- Proof Key for Code Exchange prevents authorization code interception
-- State parameter prevents CSRF attacks
-- Code verifier hashed and stored securely
-- Short-lived authorization codes
-
-**Token Storage**:
-- Access tokens stored in Vault (not client-side)
-- Refresh tokens encrypted at rest
-- Secret references used instead of actual tokens
-- Token rotation on refresh
-
-### Data Protection
-
-**In Transit**:
-- All API calls over HTTPS
-- WebSocket connections over WSS
-- TLS 1.2+ enforced
-
-**At Rest**:
-- PostgreSQL encryption at rest (Supabase managed)
-- Secrets encrypted in Vault
-- Password hashing with bcrypt (cost factor: 10)
-- Sensitive fields not logged
-
-**In Use**:
-- Secrets never sent to client
-- API keys masked in UI
-- Tokens excluded from error messages
-
-### Input Validation
-
-**Frontend**:
-- Zod schema validation
-- React Hook Form validation
-- Type checking with TypeScript
-
-**Backend**:
-- Database constraints (NOT NULL, CHECK, etc.)
-- Foreign key integrity
-- RLS policy validation
-- SQL injection prevention (parameterized queries)
-
-### Rate Limiting (Roadmap)
-
-**Planned Features**:
-- Per-user API rate limits
-- Per-connector rate limits
-- Token bucket algorithm
-- Exponential backoff on failures
-- DDoS protection at edge
-
-### Audit Logging
-
-**Action Logs**:
-- All API interactions logged
-- User ID, timestamp, and operation tracked
-- Request/response payloads (sanitized)
-- Latency metrics
-- Success/failure status
-
-**Immutable Logs**:
-- Append-only table structure
-- No deletion or modification of logs
-- Retention policy (90 days default)
-
-### Secret Management
-
-**Current Implementation**:
-- Secret references stored in database
-- Actual secrets stored separately
-- Secrets not exposed in API responses
-- Environment variables for config
-
-**Roadmap**:
-- Supabase Vault integration
-- Automatic secret rotation
-- Secret versioning
-- Audit trail for secret access
+We will respond within **48 hours** and aim to resolve critical issues within **7 days**.
 
 ---
 
 ## Security Best Practices
 
-### For Developers
-
-**Code Security**:
-- Never commit secrets to version control
-- Use `.env` files for local development
-- Validate all user inputs
-- Use parameterized queries (Supabase handles this)
-- Escape output to prevent XSS
-- Keep dependencies updated
-
-**Authentication**:
-- Always check `auth.uid()` in RLS policies
-- Use `ProtectedRoute` for sensitive pages
-- Validate JWT on server side (Supabase does this)
-- Never trust client-side authentication checks alone
-
-**API Security**:
-- Use HTTPS for all requests
-- Implement CSRF protection
-- Validate request origins
-- Use secure headers (CSP, X-Frame-Options, etc.)
-
 ### For Users
 
-**Account Security**:
-- Use strong, unique passwords
-- Enable two-factor authentication (when available)
-- Don't share credentials
-- Review connected services regularly
-- Revoke unused connections
+1. **Strong Passwords**
+   - Use passwords with at least 12 characters
+   - Include uppercase, lowercase, numbers, and symbols
+   - Never reuse passwords across services
 
-**OAuth Connections**:
-- Only connect trusted services
-- Review requested scopes before authorizing
-- Revoke access when no longer needed
-- Monitor action logs for suspicious activity
+2. **Two-Factor Authentication**
+   - Enable 2FA when available (coming soon)
+   - Use authenticator apps over SMS
 
-**Data Privacy**:
-- Don't include sensitive data in tool inputs
-- Understand what data services can access
-- Export your data periodically
-- Use security settings to control access
+3. **API Keys & Secrets**
+   - Never commit API keys to version control
+   - Rotate keys regularly
+   - Use minimal required scopes
+
+4. **Connection Management**
+   - Review connected services regularly
+   - Revoke unused connections
+   - Monitor action logs for suspicious activity
+
+### For Developers
+
+1. **Environment Variables**
+   - Never commit `.env` files
+   - Use `.env.example` for templates
+   - Rotate secrets after suspected exposure
+
+2. **Dependencies**
+   - Run `npm audit` regularly
+   - Keep dependencies updated
+   - Review dependency licenses
+
+3. **Code Review**
+   - All PRs require review
+   - Check for security anti-patterns
+   - Validate user inputs
+
+4. **Testing**
+   - Write security tests
+   - Test authentication flows
+   - Validate RLS policies
 
 ---
 
-## Known Security Considerations
+## Security Features
 
-### Current Limitations
+### Implemented
 
-1. **No 2FA Yet**: Two-factor authentication not implemented (roadmap: v0.3)
-2. **No Rate Limiting**: Basic rate limiting planned for v0.4
-3. **Simulated Job Execution**: Not calling real APIs yet (v0.4)
-4. **Limited Secrets Management**: Full Vault integration coming in v0.3
+✅ **Row-Level Security (RLS)**
+- All database tables use RLS policies
+- Users can only access their own data
+- Policies enforced at the database level
 
-### Mitigations
+✅ **HTTPS Encryption**
+- All traffic encrypted in transit
+- TLS 1.2+ required
+- HSTS enabled
 
-- RLS policies prevent unauthorized access
-- All authentication via Supabase (battle-tested)
-- HTTPS enforced for all communications
-- Regular security audits planned
+✅ **Authentication**
+- Supabase Auth with JWT tokens
+- Secure session management
+- Auto-refresh tokens
+
+✅ **Audit Logging**
+- All actions logged to `action_logs`
+- Includes user, timestamp, and operation
+- Cannot be modified by users
+
+✅ **Input Validation**
+- Form validation with Zod schemas
+- SQL injection protection via ORM
+- XSS prevention with React
+
+✅ **Secret References**
+- Tokens stored as references
+- Prepared for Vault integration
+- Never exposed in API responses
+
+### Planned
+
+🔜 **Two-Factor Authentication (2FA)**
+- TOTP-based authentication
+- Backup codes
+- SMS fallback
+
+🔜 **OAuth PKCE Flow**
+- Proof Key for Code Exchange
+- Prevents authorization code interception
+- State parameter validation
+
+🔜 **Rate Limiting**
+- Per-user rate limits
+- Per-IP rate limits
+- Configurable thresholds
+
+🔜 **Circuit Breakers**
+- Prevent cascading failures
+- Automatic recovery
+- Configurable thresholds
+
+🔜 **Supabase Vault Integration**
+- Encrypted secret storage
+- Hardware security module (HSM) backed
+- Automatic key rotation
+
+🔜 **Content Security Policy (CSP)**
+- Restrict resource loading
+- Prevent XSS attacks
+- Reporting endpoint
+
+---
+
+## Secure Configuration
+
+### Database Security
+
+**RLS Policy Example**:
+```sql
+-- Users can only view their own connections
+CREATE POLICY "Users can view their own connections"
+ON user_connections FOR SELECT
+TO authenticated
+USING (auth.uid() = user_id);
+```
+
+**Indexes for Performance**:
+```sql
+-- Ensure queries on user_id are fast
+CREATE INDEX idx_user_connections_user_id 
+ON user_connections(user_id);
+```
+
+### Frontend Security
+
+**Environment Variables**:
+```typescript
+// Only VITE_ prefixed vars are exposed to the browser
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+// Never expose sensitive keys
+// ❌ BAD: const privateKey = import.meta.env.VITE_PRIVATE_KEY;
+```
+
+**Input Sanitization**:
+```typescript
+import { z } from 'zod';
+
+const EmailSchema = z.string().email();
+const email = EmailSchema.parse(userInput); // Validates format
+```
+
+**React XSS Prevention**:
+```typescript
+// React escapes by default
+<div>{userInput}</div>  // Safe
+
+// Be careful with dangerouslySetInnerHTML
+// ❌ Avoid unless necessary
+<div dangerouslySetInnerHTML={{ __html: userInput }} />
+```
+
+### API Security
+
+**Authentication Check**:
+```typescript
+// Always verify user is authenticated
+const { user } = useAuth();
+if (!user) {
+  throw new Error('Authentication required');
+}
+```
+
+**Row-Level Security**:
+```typescript
+// RLS automatically filters by user_id
+const { data } = await supabase
+  .from('user_connections')
+  .select('*');
+// Only returns rows where user_id = auth.uid()
+```
+
+---
+
+## Known Vulnerabilities
+
+### Current Version (v0.1.0)
+
+**Low Severity**:
+- OAuth flow is simulated (not production-ready)
+- Tool execution mocked (no real API calls)
+- No rate limiting
+- No circuit breakers
+
+**Mitigations**:
+- OAuth will be implemented in v0.3.0
+- Tool execution in v0.4.0
+- Rate limiting in v0.5.0
 
 ---
 
 ## Security Checklist
 
-### Development
+### Before Deploying to Production
 
-- [ ] Review code for security issues before PR
-- [ ] Never commit secrets or credentials
-- [ ] Use TypeScript for type safety
-- [ ] Validate all user inputs
-- [ ] Test RLS policies thoroughly
-- [ ] Update dependencies regularly
-- [ ] Run security linters (ESLint security rules)
-
-### Deployment
-
-- [ ] Use strong passwords for all services
-- [ ] Enable 2FA on all accounts (GitHub, Supabase, etc.)
-- [ ] Rotate secrets regularly
-- [ ] Monitor logs for suspicious activity
-- [ ] Keep Supabase and dependencies updated
-- [ ] Use HTTPS for custom domains
-- [ ] Configure security headers
-
-### Operations
-
-- [ ] Regular security audits
-- [ ] Penetration testing (when resources allow)
-- [ ] Monitor vulnerability databases
-- [ ] Respond to security advisories promptly
-- [ ] Review access logs monthly
-- [ ] Test incident response plan
-
----
-
-## Incident Response
-
-### Detection
-
-- Monitor error rates
-- Review audit logs
-- User reports
-- Security scanning tools
-
-### Response Process
-
-1. **Identify**: Confirm the incident is real
-2. **Contain**: Isolate affected systems
-3. **Eradicate**: Remove the threat
-4. **Recover**: Restore services safely
-5. **Learn**: Post-mortem and improvements
-
-### Communication
-
-- Notify affected users within 24 hours (if data breach)
-- Provide clear timeline and actions taken
-- Offer remediation steps for users
-- Public disclosure after resolution
+- [ ] All environment variables secured
+- [ ] RLS policies tested
+- [ ] OAuth implementation complete
+- [ ] Secrets in Supabase Vault
+- [ ] Rate limiting enabled
+- [ ] Logging configured
+- [ ] Monitoring alerts set up
+- [ ] Security headers configured
+- [ ] SSL/TLS certificates valid
+- [ ] Backup and recovery tested
+- [ ] Incident response plan documented
+- [ ] Security audit completed
 
 ---
 
 ## Compliance
 
-### Current Status
+### GDPR
 
-- **GDPR**: Partial compliance (data export planned)
-- **SOC 2**: Not certified (roadmap: v1.0)
-- **ISO 27001**: Not certified
+**Data Protection**:
+- Users can export their data
+- Users can delete their accounts
+- Data retention policies defined
+- Privacy policy published
 
-### Privacy
+**User Rights**:
+- Right to access
+- Right to rectification
+- Right to erasure
+- Right to data portability
 
-- User data stored in EU or US (Supabase region)
-- No third-party tracking (no Google Analytics)
-- No data selling or sharing
-- Minimal data collection
+### CCPA
 
-### Data Retention
-
-- User accounts: Indefinite (until deletion)
-- Action logs: 90 days
-- Pipeline jobs: 30 days
-- Pipeline events: 7 days
-
-### Data Deletion
-
-Users can:
-- Delete their account (self-service)
-- Disconnect services
-- Request data export
-- Request complete data deletion
+**California Privacy Rights**:
+- Disclosure of data collection
+- Opt-out of data sales
+- Non-discrimination
 
 ---
 
-## Security Updates
+## Security Headers
 
-### Security Advisories
+### Recommended Configuration
 
-Published on:
-- GitHub Security Advisories
-- Project README
-- Email notifications (for critical issues)
+```nginx
+# Nginx configuration
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+```
 
-### Update Process
+---
 
-1. Security fix developed
-2. Testing in staging environment
-3. Deployment to production
-4. User notification
-5. Public advisory published
+## Incident Response
+
+### In Case of Security Breach
+
+1. **Immediate Actions**
+   - Isolate affected systems
+   - Revoke compromised credentials
+   - Assess scope of breach
+
+2. **Communication**
+   - Notify affected users within 24 hours
+   - Report to authorities if required
+   - Post public disclosure (if appropriate)
+
+3. **Remediation**
+   - Patch vulnerability
+   - Force password resets
+   - Audit logs for unauthorized access
+
+4. **Post-Mortem**
+   - Document incident
+   - Update security measures
+   - Share learnings with team
 
 ---
 
 ## Security Roadmap
 
-### v0.3 (Q1 2025)
-- [ ] Full OAuth PKCE implementation
-- [ ] Supabase Vault integration
-- [ ] CSRF protection
-- [ ] Basic rate limiting
+### Q1 2025
+- [ ] Implement OAuth PKCE flow
+- [ ] Add rate limiting
+- [ ] Set up security monitoring
 
-### v0.4 (Q1 2025)
-- [ ] Advanced rate limiting
-- [ ] Request signing
-- [ ] Security headers (CSP, HSTS)
-- [ ] Dependency scanning
+### Q2 2025
+- [ ] Integrate Supabase Vault
+- [ ] Add 2FA support
+- [ ] Security audit
 
-### v0.6 (Q2 2025)
-- [ ] Circuit breaker pattern
-- [ ] Webhook verification
-- [ ] Enhanced audit logging
-
-### v1.0 (Q3 2025)
-- [ ] SOC 2 Type I
+### Q3 2025
+- [ ] SOC 2 Type I compliance
 - [ ] Penetration testing
-- [ ] Security certifications
 - [ ] Bug bounty program
 
-### v1.3 (Q1 2026)
-- [ ] SSO integration
-- [ ] Advanced audit logging
-- [ ] IP whitelisting
-- [ ] Custom encryption keys
+### Q4 2025
+- [ ] SOC 2 Type II compliance
+- [ ] GDPR compliance verification
+- [ ] Security certifications
 
 ---
 
 ## Resources
 
-### External References
-
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [OAuth 2.0 Security Best Practices](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
-- [Supabase Security](https://supabase.com/docs/guides/platform/security)
-- [PostgreSQL Security](https://www.postgresql.org/docs/current/security.html)
-
-### Tools
-
-- GitHub Security Scanning
-- Dependabot for dependency updates
-- ESLint security plugin
-- npm audit
+- [CWE Top 25](https://cwe.mitre.org/top25/)
+- [Supabase Security Best Practices](https://supabase.com/docs/guides/auth/row-level-security)
+- [React Security Best Practices](https://react.dev/learn/security)
 
 ---
 
 ## Contact
 
-- **Security Issues**: security@toolconnectcraft.dev
-- **General Support**: support@toolconnectcraft.dev
-- **GitHub**: https://github.com/Krosebrook/tool-connect-craft
+For security concerns, contact:
+- **GitHub**: [Private vulnerability reporting](https://github.com/Krosebrook/tool-connect-craft/security/advisories/new)
+- **Issues**: For non-security bugs, use [GitHub Issues](https://github.com/Krosebrook/tool-connect-craft/issues)
 
----
-
-**Last Updated**: December 29, 2024
+**Response Time**: Within 48 hours
+**Critical Issues**: Within 24 hours

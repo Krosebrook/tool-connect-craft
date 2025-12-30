@@ -11,6 +11,51 @@ type DbPipelineJob = Database['public']['Tables']['pipeline_jobs']['Row'];
 type DbPipelineEvent = Database['public']['Tables']['pipeline_events']['Row'];
 type DbActionLog = Database['public']['Tables']['action_logs']['Row'];
 
+/**
+ * Custom hook that manages connector data and provides methods for connector operations.
+ * 
+ * Handles:
+ * - Fetching and caching connector data (connectors, tools, connections)
+ * - Real-time subscriptions for jobs, connections, and events
+ * - CRUD operations (connect, disconnect, execute tools)
+ * - User-scoped data isolation
+ * 
+ * @returns {Object} Connector data and action methods
+ * @returns {DbConnector[]} returns.connectors - All available connectors
+ * @returns {Map<string, DbConnectorTool[]>} returns.tools - Tools mapped by connector ID
+ * @returns {DbUserConnection[]} returns.connections - User's active connections
+ * @returns {DbPipelineJob[]} returns.jobs - Recent pipeline jobs (limit 50)
+ * @returns {Map<string, DbPipelineEvent[]>} returns.events - Events mapped by job ID
+ * @returns {DbActionLog[]} returns.logs - Action audit logs (limit 100)
+ * @returns {boolean} returns.loading - Loading state for initial data fetch
+ * @returns {Function} returns.connect - Create a connection to a connector
+ * @returns {Function} returns.disconnect - Revoke an active connection
+ * @returns {Function} returns.executeTool - Execute a connector tool
+ * @returns {Function} returns.getConnectorWithConnection - Get connector with connection status
+ * @returns {Function} returns.getToolsForConnector - Get tools for a specific connector
+ * @returns {Function} returns.fetchEventsForJob - Fetch events for a specific job
+ * 
+ * @example
+ * ```tsx
+ * function ConnectorsPage() {
+ *   const { connectors, connections, connect, loading } = useConnectorData();
+ *   
+ *   if (loading) return <LoadingSpinner />;
+ *   
+ *   return (
+ *     <div>
+ *       {connectors.map(connector => (
+ *         <ConnectorCard 
+ *           key={connector.id}
+ *           connector={connector}
+ *           onConnect={connect}
+ *         />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
 export function useConnectorData() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -237,6 +282,30 @@ export function useConnectorData() {
     };
   }, [user]);
 
+  /**
+   * Creates a connection to a connector for the current user.
+   * 
+   * For OAuth connectors, this would initiate the OAuth flow in production.
+   * Currently simulates a successful connection by creating an active connection directly.
+   * 
+   * @param {string} connectorId - UUID of the connector to connect to
+   * @returns {Promise<void>}
+   * @throws {Error} If user is not authenticated
+   * 
+   * @example
+   * ```tsx
+   * const { connect } = useConnectorData();
+   * 
+   * async function handleConnect(connectorId: string) {
+   *   await connect(connectorId);
+   *   // Connection created, UI will update via real-time subscription
+   * }
+   * ```
+   * 
+   * @todo Implement actual OAuth flow with PKCE
+   * @todo Add error retry logic
+   * @todo Support API key authentication flow
+   */
   // Connect to a connector (create pending connection)
   const connect = useCallback(async (connectorId: string) => {
     if (!user) {
@@ -282,6 +351,31 @@ export function useConnectorData() {
     await fetchConnections();
   }, [user, connectors, toast, fetchConnections]);
 
+  /**
+   * Disconnects from a connector by revoking the user's connection.
+   * 
+   * Sets the connection status to 'revoked' rather than deleting the record
+   * to maintain audit history.
+   * 
+   * @param {string} connectionId - UUID of the connection to revoke
+   * @returns {Promise<void>}
+   * 
+   * @example
+   * ```tsx
+   * const { connections, disconnect } = useConnectorData();
+   * 
+   * function DisconnectButton({ connectionId }: { connectionId: string }) {
+   *   return (
+   *     <Button onClick={() => disconnect(connectionId)}>
+   *       Disconnect
+   *     </Button>
+   *   );
+   * }
+   * ```
+   * 
+   * @todo Add confirmation dialog before disconnecting
+   * @todo Handle OAuth token revocation with provider
+   */
   // Disconnect from a connector
   const disconnect = useCallback(async (connectionId: string) => {
     const { error } = await supabase
@@ -307,6 +401,39 @@ export function useConnectorData() {
     });
   }, [toast]);
 
+  /**
+   * Executes a connector tool with the provided arguments.
+   * 
+   * Creates a pipeline job and simulates execution with status updates and events.
+   * In production, this would call a Supabase Edge Function to actually execute the tool.
+   * 
+   * @param {string} connectorSlug - URL-safe connector identifier (e.g., 'github')
+   * @param {string} toolName - Name of the tool to execute (e.g., 'create_issue')
+   * @param {Record<string, unknown>} args - Tool execution arguments
+   * @returns {Promise<DbPipelineJob>} The created pipeline job
+   * @throws {Error} If user not authenticated or connector not found
+   * 
+   * @example
+   * ```tsx
+   * const { executeTool } = useConnectorData();
+   * 
+   * async function createGitHubIssue() {
+   *   const job = await executeTool('github', 'create_issue', {
+   *     repository: 'owner/repo',
+   *     title: 'Bug report',
+   *     body: 'Description of the bug'
+   *   });
+   *   
+   *   console.log('Job created:', job.id);
+   *   // Job status will update via real-time subscription
+   * }
+   * ```
+   * 
+   * @todo Replace setTimeout with Supabase Edge Function call
+   * @todo Add input validation using tool schema
+   * @todo Implement retry logic for failed jobs
+   * @todo Add timeout handling
+   */
   // Execute a tool
   const executeTool = useCallback(async (
     connectorSlug: string,
