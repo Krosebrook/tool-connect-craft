@@ -1,30 +1,39 @@
 # Contributing to Tool Connect Craft
 
-First off, thank you for considering contributing to Tool Connect Craft! It's people like you that make Tool Connect Craft such a great tool.
+First off, thank you for considering contributing to Tool Connect Craft! It's people like you that make this project better for everyone.
 
 ## Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
-- [How Can I Contribute?](#how-can-i-contribute)
-- [Development Setup](#development-setup)
-- [Development Workflow](#development-workflow)
+- [Development Process](#development-process)
 - [Coding Standards](#coding-standards)
-- [Commit Guidelines](#commit-guidelines)
-- [Pull Request Process](#pull-request-process)
-- [Testing Guidelines](#testing-guidelines)
-- [Documentation](#documentation)
+- [Submitting Changes](#submitting-changes)
+- [Reporting Bugs](#reporting-bugs)
+- [Suggesting Features](#suggesting-features)
 - [Community](#community)
 
 ---
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to conduct@toolconnectcraft.dev.
+This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
 
-### Our Pledge
+### Our Standards
 
-We pledge to make participation in our project a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+**Examples of behavior that contributes to a positive environment:**
+- Using welcoming and inclusive language
+- Being respectful of differing viewpoints and experiences
+- Gracefully accepting constructive criticism
+- Focusing on what is best for the community
+- Showing empathy towards other community members
+
+**Examples of unacceptable behavior:**
+- The use of sexualized language or imagery and unwelcome sexual attention or advances
+- Trolling, insulting/derogatory comments, and personal or political attacks
+- Public or private harassment
+- Publishing others' private information without explicit permission
+- Other conduct which could reasonably be considered inappropriate in a professional setting
 
 ---
 
@@ -32,354 +41,83 @@ We pledge to make participation in our project a harassment-free experience for 
 
 ### Prerequisites
 
-Before you begin, ensure you have:
+- Node.js >= 18.0.0
+- npm >= 9.0.0
+- Git
+- A Supabase account (for backend development)
+- Basic knowledge of React, TypeScript, and SQL
 
-- **Node.js** >= 18.0.0
-- **npm** >= 9.0.0 or **bun** >= 1.0.0
-- **Git** for version control
-- **Supabase Account** for backend services
-- A **GitHub Account** for pull requests
+### Setting Up Development Environment
 
-### First Contribution?
+1. **Fork the repository** on GitHub
 
-Unsure where to begin? Look for issues labeled:
-- `good first issue` - Good for newcomers
-- `help wanted` - Extra attention needed
-- `documentation` - Improvements or additions to documentation
+2. **Clone your fork**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/tool-connect-craft.git
+   cd tool-connect-craft
+   ```
 
----
+3. **Add upstream remote**
+   ```bash
+   git remote add upstream https://github.com/Krosebrook/tool-connect-craft.git
+   ```
 
-## How Can I Contribute?
+4. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-### Reporting Bugs
+5. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Supabase credentials
+   ```
 
-Before creating bug reports, please check existing issues to avoid duplicates.
+6. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-**When filing a bug report, include:**
-- A clear and descriptive title
-- Steps to reproduce the behavior
-- Expected behavior
-- Actual behavior
-- Screenshots (if applicable)
-- Your environment (OS, browser, Node version)
-- Any error messages or logs
-
-**Use this template:**
-
-```markdown
-**Describe the bug**
-A clear description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce:
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
-
-**Expected behavior**
-What you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots.
-
-**Environment:**
-- OS: [e.g. macOS 13.0]
-- Browser: [e.g. Chrome 120]
-- Node: [e.g. 18.17.0]
-- Version: [e.g. 0.1.0]
-
-**Additional context**
-Any other context about the problem.
-```
-
-### Suggesting Enhancements
-
-Enhancement suggestions are tracked as GitHub issues.
-
-**When suggesting an enhancement, include:**
-- A clear and descriptive title
-- A detailed description of the proposed functionality
-- Why this enhancement would be useful
-- Possible implementation approach (optional)
-
-### Contributing Code
-
-1. Find an issue to work on or create one
-2. Comment on the issue that you'd like to work on it
-3. Wait for approval from a maintainer
-4. Fork and create your branch
-5. Make your changes
-6. Submit a pull request
+7. **Open your browser** to http://localhost:8080
 
 ---
 
-## Development Setup
+## Development Process
 
-### 1. Fork and Clone
+### Branching Strategy
 
-```bash
-# Fork the repository on GitHub, then:
-git clone https://github.com/YOUR_USERNAME/tool-connect-craft.git
-cd tool-connect-craft
+We use a simplified Git Flow:
 
-# Add upstream remote
-git remote add upstream https://github.com/Krosebrook/tool-connect-craft.git
-```
+- `main` - Production-ready code
+- `develop` - Integration branch for features
+- `feature/*` - New features
+- `fix/*` - Bug fixes
+- `docs/*` - Documentation updates
+- `refactor/*` - Code refactoring
 
-### 2. Install Dependencies
-
-```bash
-npm install
-# or
-bun install
-```
-
-### 3. Configure Environment
+### Creating a Branch
 
 ```bash
-cp .env.example .env
-```
-
-Edit `.env` with your Supabase credentials:
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
-VITE_SUPABASE_PROJECT_ID=your_project_id
-```
-
-### 4. Set Up Database
-
-Option A - Using Supabase CLI:
-```bash
-npx supabase link --project-ref your_project_id
-npx supabase db push
-```
-
-Option B - Manual via Supabase Dashboard:
-- Copy SQL from `supabase/migrations/`
-- Run in SQL Editor
-
-### 5. Start Development Server
-
-```bash
-npm run dev
-```
-
-Visit `http://localhost:5173`
-
----
-
-## Development Workflow
-
-### Branch Naming Convention
-
-Use descriptive branch names with prefixes:
-
-- `feature/` - New features (e.g., `feature/add-webhook-support`)
-- `fix/` - Bug fixes (e.g., `fix/connection-timeout`)
-- `docs/` - Documentation (e.g., `docs/update-readme`)
-- `refactor/` - Code refactoring (e.g., `refactor/extract-hook`)
-- `test/` - Adding tests (e.g., `test/add-auth-tests`)
-- `chore/` - Maintenance (e.g., `chore/update-dependencies`)
-
-### Workflow Steps
-
-```bash
-# 1. Sync with upstream
-git checkout main
-git pull upstream main
-
-# 2. Create feature branch
-git checkout -b feature/your-feature-name
-
-# 3. Make changes and commit
-git add .
-git commit -m "feat: add your feature"
-
-# 4. Keep branch updated
+# Fetch latest changes
 git fetch upstream
-git rebase upstream/main
+git checkout develop
+git merge upstream/develop
 
-# 5. Push to your fork
-git push origin feature/your-feature-name
-
-# 6. Create Pull Request on GitHub
+# Create your feature branch
+git checkout -b feature/my-amazing-feature
 ```
 
----
+### Making Changes
 
-## Coding Standards
+1. **Make your changes** in your feature branch
+2. **Follow coding standards** (see below)
+3. **Write or update tests** for your changes
+4. **Test locally** to ensure nothing breaks
+5. **Commit your changes** with descriptive messages
 
-### TypeScript
+### Commit Messages
 
-```typescript
-// ✅ Good
-interface UserConnection {
-  id: string;
-  userId: string;
-  status: ConnectionStatus;
-}
-
-function connect(connectorId: string): Promise<void> {
-  // implementation
-}
-
-// ❌ Bad
-interface UserConnection {
-  id: any;  // Don't use 'any'
-  userId;   // Always specify types
-}
-
-function connect(connectorId) {  // Missing types
-  // implementation
-}
-```
-
-### React Components
-
-```typescript
-// ✅ Good
-interface ConnectorCardProps {
-  connector: Connector;
-  onConnect: (id: string) => void;
-}
-
-export function ConnectorCard({ connector, onConnect }: ConnectorCardProps) {
-  return (
-    <Card>
-      <h3>{connector.name}</h3>
-      <Button onClick={() => onConnect(connector.id)}>
-        Connect
-      </Button>
-    </Card>
-  );
-}
-
-// ❌ Bad
-export function ConnectorCard(props: any) {  // Missing type definition
-  return (
-    <div>  {/* Use semantic components */}
-      <h3>{props.connector.name}</h3>
-    </div>
-  );
-}
-```
-
-### Naming Conventions
-
-- **Variables/Functions**: `camelCase`
-- **Components**: `PascalCase`
-- **Constants**: `UPPER_SNAKE_CASE`
-- **Types/Interfaces**: `PascalCase`
-- **Files**: Match export name (`ConnectorCard.tsx`, `useAuth.ts`)
-
-### Code Organization
-
-```typescript
-// File structure
-// 1. Imports
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Connector } from '@/types/connector';
-
-// 2. Types/Interfaces
-interface Props {
-  // ...
-}
-
-// 3. Constants
-const MAX_RETRIES = 3;
-
-// 4. Main component/function
-export function Component() {
-  // 4a. Hooks
-  const [state, setState] = useState();
-  
-  // 4b. Derived values
-  const computed = useMemo(() => {}, []);
-  
-  // 4c. Effects
-  useEffect(() => {}, []);
-  
-  // 4d. Event handlers
-  const handleClick = () => {};
-  
-  // 4e. Render
-  return <div />;
-}
-
-// 5. Helper functions
-function helper() {}
-```
-
-### Comments
-
-```typescript
-// ✅ Good - JSDoc for complex functions
-/**
- * Executes a connector tool with the given arguments.
- * 
- * @param slug - Connector slug identifier
- * @param toolName - Name of the tool to execute
- * @param args - Tool input arguments
- * @returns Pipeline job representing the execution
- * @throws {Error} If connector not found or user not authenticated
- */
-export async function executeTool(
-  slug: string,
-  toolName: string,
-  args: Record<string, unknown>
-): Promise<PipelineJob> {
-  // Implementation
-}
-
-// ✅ Good - Inline for clarity
-// Check if token has expired
-if (expiresAt && new Date(expiresAt) < new Date()) {
-  // Refresh token logic
-}
-
-// ❌ Bad - Obvious comments
-const user = getUser();  // Get the user
-```
-
-### Error Handling
-
-```typescript
-// ✅ Good
-try {
-  const result = await executeTool(slug, toolName, args);
-  toast({
-    title: 'Success',
-    description: 'Tool executed successfully'
-  });
-  return result;
-} catch (error) {
-  console.error('Tool execution failed:', error);
-  toast({
-    title: 'Error',
-    description: error instanceof Error ? error.message : 'Unknown error',
-    variant: 'destructive'
-  });
-  throw error;
-}
-
-// ❌ Bad
-try {
-  await executeTool(slug, toolName, args);
-} catch (error) {
-  // Silent failure
-}
-```
-
----
-
-## Commit Guidelines
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/).
-
-### Format
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 ```
 <type>(<scope>): <subject>
@@ -389,217 +127,359 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/).
 <footer>
 ```
 
-### Types
-
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation only
-- `style`: Code style (formatting, semicolons, etc.)
-- `refactor`: Code refactoring
+**Types:**
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that don't affect code meaning (white-space, formatting)
+- `refactor`: Code change that neither fixes a bug nor adds a feature
 - `perf`: Performance improvement
-- `test`: Adding tests
-- `chore`: Maintenance tasks
-- `ci`: CI/CD changes
-- `revert`: Revert previous commit
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools
 
-### Examples
+**Examples:**
+```
+feat(connectors): add Stripe payment connector
 
-```bash
-# Simple feature
-git commit -m "feat: add GitHub connector integration"
+Add support for Stripe payment processing including:
+- OAuth 2.0 integration
+- Payment intent creation
+- Refund processing
+- Webhook handling
 
-# Bug fix with scope
-git commit -m "fix(auth): resolve token refresh race condition"
-
-# Breaking change
-git commit -m "feat(api)!: change executeTool signature
-
-BREAKING CHANGE: executeTool now requires connectorId instead of slug"
-
-# Multiple changes
-git commit -m "feat: add real-time job updates
-
-- Subscribe to job status changes
-- Update UI on job completion
-- Add loading indicators
-
-Closes #123"
+Closes #123
 ```
 
-### Commit Best Practices
+```
+fix(auth): prevent token refresh loop
 
-- Use present tense ("add feature" not "added feature")
-- Use imperative mood ("move cursor to..." not "moves cursor to...")
-- Capitalize first letter
-- No period at the end
-- Reference issues and PRs when relevant
-- Keep subject line under 72 characters
-- Separate subject from body with blank line
+Fixed infinite loop when refresh token expires by adding
+proper error handling and redirect to login page.
+
+Fixes #456
+```
 
 ---
 
-## Pull Request Process
+## Coding Standards
+
+### TypeScript
+
+- **Use TypeScript strictly** - no `any` types unless absolutely necessary
+- **Define interfaces** for all data structures
+- **Use type inference** where possible
+- **Prefer `interface` over `type`** for object shapes
+- **Use enums** for fixed sets of values
+
+```typescript
+// Good
+interface User {
+  id: string;
+  email: string;
+  createdAt: Date;
+}
+
+// Avoid
+const user: any = { ... };
+```
+
+### React
+
+- **Use functional components** with hooks
+- **Avoid class components** unless necessary
+- **Keep components small** and focused (< 200 lines)
+- **Extract custom hooks** for reusable logic
+- **Use proper prop types** with TypeScript
+- **Memoize expensive operations** with `useMemo` and `useCallback`
+
+```typescript
+// Good
+interface Props {
+  userId: string;
+  onUpdate: (user: User) => void;
+}
+
+export function UserProfile({ userId, onUpdate }: Props) {
+  // Component logic
+}
+```
+
+### Naming Conventions
+
+- **Components**: PascalCase (`UserProfile.tsx`)
+- **Hooks**: camelCase with `use` prefix (`useConnectorData.ts`)
+- **Utilities**: camelCase (`formatDate.ts`)
+- **Constants**: UPPER_SNAKE_CASE (`MAX_RETRIES`)
+- **Types/Interfaces**: PascalCase (`UserConnection`)
+- **Files**: Match the export name
+
+### File Organization
+
+```
+src/
+├── components/
+│   ├── [feature]/          # Group by feature
+│   │   ├── Component.tsx
+│   │   └── types.ts
+│   └── ui/                 # Shared UI components
+├── context/                # React Context providers
+├── hooks/                  # Custom hooks
+├── lib/                    # Utilities
+├── pages/                  # Route pages
+└── types/                  # Shared types
+```
+
+### Code Style
+
+- **Use ESLint** - run `npm run lint`
+- **2 spaces** for indentation
+- **Single quotes** for strings
+- **Semicolons** at end of statements
+- **Trailing commas** in multi-line structures
+- **Max line length**: 100 characters
+
+### Comments
+
+- **Write self-documenting code** - prefer clear naming over comments
+- **Add comments for complex logic**
+- **Document public APIs** with JSDoc
+- **TODO comments** should include issue number
+
+```typescript
+/**
+ * Executes a tool on a connector with the given arguments.
+ * 
+ * @param connectorSlug - The unique slug of the connector
+ * @param toolName - The name of the tool to execute
+ * @param args - Tool-specific arguments
+ * @returns A promise that resolves to the created job
+ * @throws {Error} If user is not authenticated or connector not found
+ */
+export async function executeTool(
+  connectorSlug: string,
+  toolName: string,
+  args: Record<string, unknown>
+): Promise<PipelineJob> {
+  // TODO(#123): Add retry logic
+  // ...
+}
+```
+
+---
+
+## Submitting Changes
+
+### Pull Request Process
+
+1. **Update your branch** with the latest changes from upstream
+   ```bash
+   git fetch upstream
+   git rebase upstream/develop
+   ```
+
+2. **Push your changes** to your fork
+   ```bash
+   git push origin feature/my-amazing-feature
+   ```
+
+3. **Create a Pull Request** on GitHub
+   - Use a descriptive title
+   - Fill out the PR template completely
+   - Link related issues
+   - Add screenshots for UI changes
+   - Request review from maintainers
+
+4. **Address review feedback**
+   - Make requested changes
+   - Push updates to the same branch
+   - Reply to comments
+
+5. **Squash commits** (if requested)
+   ```bash
+   git rebase -i upstream/develop
+   git push --force-with-lease
+   ```
+
+### PR Checklist
+
+Before submitting, ensure:
+
+- [ ] Code follows the style guidelines
+- [ ] Tests pass (`npm test`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] Linting passes (`npm run lint`)
+- [ ] No console errors or warnings
+- [ ] Documentation is updated
+- [ ] Commits follow convention
+- [ ] PR description is complete
+
+---
+
+## Reporting Bugs
+
+### Before Submitting a Bug Report
+
+- **Check the documentation** - ensure you're using the feature correctly
+- **Search existing issues** - your bug might already be reported
+- **Try the latest version** - the bug might be fixed
+- **Reproduce the issue** - ensure it's consistent
+
+### How to Submit a Bug Report
+
+Create an issue with:
+
+**Title**: Short, descriptive summary
+
+**Description**:
+- **Steps to reproduce**
+- **Expected behavior**
+- **Actual behavior**
+- **Screenshots** (if applicable)
+- **Environment**:
+  - OS and version
+  - Browser and version
+  - Node.js version
+  - Package version
+
+**Example:**
+```markdown
+## Bug: OAuth callback fails with 500 error
+
+### Steps to Reproduce
+1. Go to `/connectors`
+2. Click "Connect" on GitHub connector
+3. Authorize the app on GitHub
+4. Gets redirected back with error
+
+### Expected Behavior
+Should complete OAuth flow and show connected status
+
+### Actual Behavior
+500 Internal Server Error in console, connection status remains "pending"
+
+### Environment
+- OS: macOS 14.0
+- Browser: Chrome 120.0
+- Node: 18.19.0
+- Version: 0.1.0
+
+### Screenshots
+[Attach screenshot of error]
+```
+
+---
+
+## Suggesting Features
+
+We love new ideas! Here's how to suggest features:
 
 ### Before Submitting
 
-1. **Ensure your code follows standards**
-   ```bash
-   npm run lint
-   npm run type-check
-   ```
+- **Check the roadmap** - feature might be planned
+- **Search existing issues** - someone might have suggested it
+- **Consider the scope** - does it fit the project vision?
 
-2. **Test your changes**
-   - Manually test affected features
-   - Ensure no regressions
-   - Test on different browsers (if UI changes)
+### How to Submit a Feature Request
 
-3. **Update documentation**
-   - Update README if needed
-   - Add JSDoc comments
-   - Update CHANGELOG.md
+Create an issue with:
 
-4. **Sync with upstream**
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
+**Title**: `[Feature Request] Brief description`
 
-### PR Template
+**Description**:
+- **Problem/motivation** - what problem does it solve?
+- **Proposed solution** - how should it work?
+- **Alternatives considered** - other approaches?
+- **Use cases** - who benefits and how?
+- **Implementation ideas** (optional)
 
+**Example:**
 ```markdown
-## Description
-Brief description of changes.
+## [Feature Request] Webhook support for connector events
 
-## Type of Change
-- [ ] Bug fix (non-breaking change fixing an issue)
-- [ ] New feature (non-breaking change adding functionality)
-- [ ] Breaking change (fix or feature causing existing functionality to change)
-- [ ] Documentation update
+### Problem
+Currently, users must poll the API to check job status. This is inefficient
+for real-time integrations.
 
-## Testing
-How was this tested?
-- [ ] Manual testing
-- [ ] Unit tests added/updated
-- [ ] Integration tests added/updated
+### Proposed Solution
+Add webhook configuration where users can register a URL to receive events:
+- Job status changes
+- Connection status changes
+- Tool execution results
 
-## Screenshots (if applicable)
-Add screenshots for UI changes.
+### Alternatives Considered
+- WebSocket-only (doesn't work for server-to-server)
+- Server-Sent Events (limited browser support)
 
-## Checklist
-- [ ] Code follows style guidelines
-- [ ] Self-review completed
-- [ ] Comments added for complex code
-- [ ] Documentation updated
-- [ ] No new warnings
-- [ ] Tests added/updated
-- [ ] All tests passing
-- [ ] Dependent changes merged
+### Use Cases
+- CI/CD pipelines waiting for deployment status
+- Notification systems reacting to events
+- Third-party integrations requiring real-time updates
 
-## Related Issues
-Closes #(issue number)
+### Implementation Ideas
+- Add `webhooks` table to database
+- Create Edge Function to dispatch events
+- Include HMAC signature for security
+- Retry logic with exponential backoff
 ```
-
-### Review Process
-
-1. **Automated Checks**
-   - Linting passes
-   - Type checking passes
-   - Build succeeds
-
-2. **Code Review**
-   - At least one approval required
-   - Address all comments
-   - Make requested changes
-
-3. **Merge**
-   - Squash and merge (preferred)
-   - Maintainer will merge once approved
-
-### After Merge
-
-- Delete your branch
-- Update your local repository
-  ```bash
-  git checkout main
-  git pull upstream main
-  git push origin main
-  ```
 
 ---
 
-## Testing Guidelines
+## Testing
 
-### Test Structure
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Run specific test file
+npm test -- ConnectorCard.test.tsx
+```
+
+### Writing Tests
+
+- **Test files** should be colocated: `Component.test.tsx`
+- **Test user behavior**, not implementation details
+- **Use Testing Library** best practices
+- **Mock external dependencies** (Supabase, APIs)
 
 ```typescript
-// ✅ Example test structure (when tests are added)
-describe('useAuth hook', () => {
-  it('should initialize with loading state', () => {
-    // Test implementation
+import { render, screen, fireEvent } from '@testing-library/react';
+import { ConnectorCard } from './ConnectorCard';
+
+describe('ConnectorCard', () => {
+  it('displays connector name and description', () => {
+    const connector = {
+      id: '1',
+      name: 'GitHub',
+      description: 'Manage repositories',
+      // ...
+    };
+    
+    render(<ConnectorCard connector={connector} />);
+    
+    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    expect(screen.getByText('Manage repositories')).toBeInTheDocument();
   });
   
-  it('should sign in successfully', async () => {
-    // Test implementation
-  });
-  
-  it('should handle sign in errors', async () => {
-    // Test implementation
+  it('calls onConnect when connect button is clicked', () => {
+    const onConnect = jest.fn();
+    const connector = { /* ... */ };
+    
+    render(<ConnectorCard connector={connector} onConnect={onConnect} />);
+    
+    fireEvent.click(screen.getByRole('button', { name: /connect/i }));
+    
+    expect(onConnect).toHaveBeenCalledWith(connector.id);
   });
 });
 ```
-
-### What to Test
-
-1. **Critical User Flows**
-   - Authentication
-   - Connector connection/disconnection
-   - Tool execution
-
-2. **Edge Cases**
-   - Empty states
-   - Error conditions
-   - Network failures
-
-3. **Business Logic**
-   - Data transformations
-   - Validation logic
-   - State management
-
-### Testing Best Practices
-
-- Test behavior, not implementation
-- Use meaningful test descriptions
-- Keep tests isolated and independent
-- Mock external dependencies
-- Test error cases
-
----
-
-## Documentation
-
-### When to Update Documentation
-
-- Adding new features
-- Changing existing behavior
-- Fixing bugs that affect documented behavior
-- Adding configuration options
-- Changing environment variables
-
-### Documentation Files
-
-- **README.md** - Overview, setup, usage
-- **ARCHITECTURE.md** - Technical architecture
-- **CHANGELOG.md** - Version history
-- **API.md** - API documentation (when added)
-- Code comments - Inline documentation
-
-### Documentation Style
-
-- Use clear, concise language
-- Include code examples
-- Add diagrams for complex concepts
-- Keep formatting consistent
-- Update table of contents
 
 ---
 
@@ -607,30 +487,23 @@ describe('useAuth hook', () => {
 
 ### Getting Help
 
-- **GitHub Discussions** - Ask questions, share ideas
-- **GitHub Issues** - Report bugs, request features
-- **Discord** (coming soon) - Real-time chat
+- **Documentation**: Check [/docs](./docs)
+- **Issues**: Search [existing issues](https://github.com/Krosebrook/tool-connect-craft/issues)
+- **Discussions**: Join [GitHub Discussions](https://github.com/Krosebrook/tool-connect-craft/discussions)
 
 ### Stay Updated
 
-- Watch the repository for updates
-- Follow release notes
-- Join our mailing list (coming soon)
-
-### Recognition
-
-Contributors are recognized in:
-- GitHub contributors page
-- Release notes
-- CONTRIBUTORS.md file (coming soon)
+- **Watch the repository** for notifications
+- **Star the project** to show support
+- **Follow the changelog** for updates
 
 ---
 
-## Questions?
+## Recognition
 
-If you have questions about contributing, feel free to:
-- Open a GitHub Discussion
-- Comment on relevant issues
-- Contact maintainers
+Contributors will be recognized in:
+- README.md contributors section
+- Release notes
+- Annual contributor highlights
 
 Thank you for contributing to Tool Connect Craft! 🎉

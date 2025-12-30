@@ -59,8 +59,9 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-conduct@toolconnectcraft.dev.
+reported to the community leaders responsible for enforcement via
+[GitHub Issues](https://github.com/Krosebrook/tool-connect-craft/issues) (mark as confidential)
+or through [private contact with maintainers](https://github.com/Krosebrook).
 
 All complaints will be reviewed and investigated promptly and fairly.
 
