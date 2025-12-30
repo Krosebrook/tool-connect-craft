@@ -4,7 +4,7 @@
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-If you discover a security vulnerability, please email the maintainers at **security@toolconnectcraft.dev** (or through GitHub's private vulnerability reporting feature).
+If you discover a security vulnerability, please report it through [GitHub's private vulnerability reporting feature](https://github.com/Krosebrook/tool-connect-craft/security/advisories/new).
 
 Include the following information:
 - Type of vulnerability
@@ -343,8 +343,8 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; prelo
 ## Contact
 
 For security concerns, contact:
-- **Email**: security@toolconnectcraft.dev
-- **GitHub**: [Private vulnerability reporting](https://github.com/Krosebrook/tool-connect-craft/security)
+- **GitHub**: [Private vulnerability reporting](https://github.com/Krosebrook/tool-connect-craft/security/advisories/new)
+- **Issues**: For non-security bugs, use [GitHub Issues](https://github.com/Krosebrook/tool-connect-craft/issues)
 
 **Response Time**: Within 48 hours
 **Critical Issues**: Within 24 hours
