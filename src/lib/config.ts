@@ -105,7 +105,6 @@ export const EVENT_LEVEL_LABELS = {
 // Route paths
 export const ROUTES = {
   home: '/',
-  auth: '/auth',
   connectors: '/connectors',
   connectorDetail: (slug: string) => `/connectors/${slug}`,
   dashboard: '/dashboard',

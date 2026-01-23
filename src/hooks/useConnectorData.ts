@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -11,6 +10,9 @@ type DbPipelineJob = Database['public']['Tables']['pipeline_jobs']['Row'];
 type DbPipelineEvent = Database['public']['Tables']['pipeline_events']['Row'];
 type DbActionLog = Database['public']['Tables']['action_logs']['Row'];
 
+// Internal user ID for this internal app (no auth required)
+const INTERNAL_USER_ID = '00000000-0000-0000-0000-000000000001';
+
 /**
  * Custom hook that manages connector data and provides methods for connector operations.
  * 
@@ -18,46 +20,10 @@ type DbActionLog = Database['public']['Tables']['action_logs']['Row'];
  * - Fetching and caching connector data (connectors, tools, connections)
  * - Real-time subscriptions for jobs, connections, and events
  * - CRUD operations (connect, disconnect, execute tools)
- * - User-scoped data isolation
  * 
  * @returns {Object} Connector data and action methods
- * @returns {DbConnector[]} returns.connectors - All available connectors
- * @returns {Map<string, DbConnectorTool[]>} returns.tools - Tools mapped by connector ID
- * @returns {DbUserConnection[]} returns.connections - User's active connections
- * @returns {DbPipelineJob[]} returns.jobs - Recent pipeline jobs (limit 50)
- * @returns {Map<string, DbPipelineEvent[]>} returns.events - Events mapped by job ID
- * @returns {DbActionLog[]} returns.logs - Action audit logs (limit 100)
- * @returns {boolean} returns.loading - Loading state for initial data fetch
- * @returns {Function} returns.connect - Create a connection to a connector
- * @returns {Function} returns.disconnect - Revoke an active connection
- * @returns {Function} returns.executeTool - Execute a connector tool
- * @returns {Function} returns.getConnectorWithConnection - Get connector with connection status
- * @returns {Function} returns.getToolsForConnector - Get tools for a specific connector
- * @returns {Function} returns.fetchEventsForJob - Fetch events for a specific job
- * 
- * @example
- * ```tsx
- * function ConnectorsPage() {
- *   const { connectors, connections, connect, loading } = useConnectorData();
- *   
- *   if (loading) return <LoadingSpinner />;
- *   
- *   return (
- *     <div>
- *       {connectors.map(connector => (
- *         <ConnectorCard 
- *           key={connector.id}
- *           connector={connector}
- *           onConnect={connect}
- *         />
- *       ))}
- *     </div>
- *   );
- * }
- * ```
  */
 export function useConnectorData() {
-  const { user } = useAuth();
   const { toast } = useToast();
   
   const [connectors, setConnectors] = useState<DbConnector[]>([]);
@@ -104,28 +70,24 @@ export function useConnectorData() {
 
   // Fetch user connections
   const fetchConnections = useCallback(async () => {
-    if (!user) return;
-    
     const { data, error } = await supabase
       .from('user_connections')
       .select('*')
-      .eq('user_id', user.id);
+      .eq('user_id', INTERNAL_USER_ID);
     
     if (error) {
       console.error('Error fetching connections:', error);
       return;
     }
     setConnections(data || []);
-  }, [user]);
+  }, []);
 
   // Fetch jobs
   const fetchJobs = useCallback(async () => {
-    if (!user) return;
-    
     const { data, error } = await supabase
       .from('pipeline_jobs')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', INTERNAL_USER_ID)
       .order('created_at', { ascending: false })
       .limit(50);
     
@@ -134,7 +96,7 @@ export function useConnectorData() {
       return;
     }
     setJobs(data || []);
-  }, [user]);
+  }, []);
 
   // Fetch events for jobs
   const fetchEventsForJob = useCallback(async (jobId: string) => {
@@ -158,12 +120,10 @@ export function useConnectorData() {
 
   // Fetch logs
   const fetchLogs = useCallback(async () => {
-    if (!user) return;
-    
     const { data, error } = await supabase
       .from('action_logs')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', INTERNAL_USER_ID)
       .order('created_at', { ascending: false })
       .limit(100);
     
@@ -172,7 +132,7 @@ export function useConnectorData() {
       return;
     }
     setLogs(data || []);
-  }, [user]);
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
@@ -181,24 +141,18 @@ export function useConnectorData() {
       await Promise.all([
         fetchConnectors(),
         fetchTools(),
+        fetchConnections(),
+        fetchJobs(),
+        fetchLogs(),
       ]);
-      if (user) {
-        await Promise.all([
-          fetchConnections(),
-          fetchJobs(),
-          fetchLogs(),
-        ]);
-      }
       setLoading(false);
     };
     
     loadData();
-  }, [user, fetchConnectors, fetchTools, fetchConnections, fetchJobs, fetchLogs]);
+  }, [fetchConnectors, fetchTools, fetchConnections, fetchJobs, fetchLogs]);
 
   // Set up realtime subscriptions
   useEffect(() => {
-    if (!user) return;
-
     // Subscribe to job status changes
     const jobsChannel = supabase
       .channel('jobs-changes')
@@ -208,7 +162,7 @@ export function useConnectorData() {
           event: '*',
           schema: 'public',
           table: 'pipeline_jobs',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${INTERNAL_USER_ID}`,
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -233,7 +187,7 @@ export function useConnectorData() {
           event: '*',
           schema: 'public',
           table: 'user_connections',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${INTERNAL_USER_ID}`,
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -280,52 +234,17 @@ export function useConnectorData() {
       supabase.removeChannel(connectionsChannel);
       supabase.removeChannel(eventsChannel);
     };
-  }, [user]);
+  }, []);
 
-  /**
-   * Creates a connection to a connector for the current user.
-   * 
-   * For OAuth connectors, this would initiate the OAuth flow in production.
-   * Currently simulates a successful connection by creating an active connection directly.
-   * 
-   * @param {string} connectorId - UUID of the connector to connect to
-   * @returns {Promise<void>}
-   * @throws {Error} If user is not authenticated
-   * 
-   * @example
-   * ```tsx
-   * const { connect } = useConnectorData();
-   * 
-   * async function handleConnect(connectorId: string) {
-   *   await connect(connectorId);
-   *   // Connection created, UI will update via real-time subscription
-   * }
-   * ```
-   * 
-   * @todo Implement actual OAuth flow with PKCE
-   * @todo Add error retry logic
-   * @todo Support API key authentication flow
-   */
   // Connect to a connector (create pending connection)
   const connect = useCallback(async (connectorId: string) => {
-    if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to connect to services.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     const connector = connectors.find(c => c.id === connectorId);
     if (!connector) return;
 
-    // For OAuth connectors, we would redirect to the OAuth flow
-    // For now, create a connection directly (simulating successful OAuth)
     const { error } = await supabase
       .from('user_connections')
       .upsert({
-        user_id: user.id,
+        user_id: INTERNAL_USER_ID,
         connector_id: connectorId,
         status: 'active',
         scopes: connector.oauth_scopes || [],
@@ -349,33 +268,8 @@ export function useConnectorData() {
     });
 
     await fetchConnections();
-  }, [user, connectors, toast, fetchConnections]);
+  }, [connectors, toast, fetchConnections]);
 
-  /**
-   * Disconnects from a connector by revoking the user's connection.
-   * 
-   * Sets the connection status to 'revoked' rather than deleting the record
-   * to maintain audit history.
-   * 
-   * @param {string} connectionId - UUID of the connection to revoke
-   * @returns {Promise<void>}
-   * 
-   * @example
-   * ```tsx
-   * const { connections, disconnect } = useConnectorData();
-   * 
-   * function DisconnectButton({ connectionId }: { connectionId: string }) {
-   *   return (
-   *     <Button onClick={() => disconnect(connectionId)}>
-   *       Disconnect
-   *     </Button>
-   *   );
-   * }
-   * ```
-   * 
-   * @todo Add confirmation dialog before disconnecting
-   * @todo Handle OAuth token revocation with provider
-   */
   // Disconnect from a connector
   const disconnect = useCallback(async (connectionId: string) => {
     const { error } = await supabase
@@ -401,49 +295,12 @@ export function useConnectorData() {
     });
   }, [toast]);
 
-  /**
-   * Executes a connector tool with the provided arguments.
-   * 
-   * Creates a pipeline job and simulates execution with status updates and events.
-   * In production, this would call a Supabase Edge Function to actually execute the tool.
-   * 
-   * @param {string} connectorSlug - URL-safe connector identifier (e.g., 'github')
-   * @param {string} toolName - Name of the tool to execute (e.g., 'create_issue')
-   * @param {Record<string, unknown>} args - Tool execution arguments
-   * @returns {Promise<DbPipelineJob>} The created pipeline job
-   * @throws {Error} If user not authenticated or connector not found
-   * 
-   * @example
-   * ```tsx
-   * const { executeTool } = useConnectorData();
-   * 
-   * async function createGitHubIssue() {
-   *   const job = await executeTool('github', 'create_issue', {
-   *     repository: 'owner/repo',
-   *     title: 'Bug report',
-   *     body: 'Description of the bug'
-   *   });
-   *   
-   *   console.log('Job created:', job.id);
-   *   // Job status will update via real-time subscription
-   * }
-   * ```
-   * 
-   * @todo Replace setTimeout with Supabase Edge Function call
-   * @todo Add input validation using tool schema
-   * @todo Implement retry logic for failed jobs
-   * @todo Add timeout handling
-   */
   // Execute a tool
   const executeTool = useCallback(async (
     connectorSlug: string,
     toolName: string,
     args: Record<string, unknown>
   ) => {
-    if (!user) {
-      throw new Error('Authentication required');
-    }
-
     const connector = connectors.find(c => c.slug === connectorSlug);
     if (!connector) {
       throw new Error('Connector not found');
@@ -453,7 +310,7 @@ export function useConnectorData() {
     const { data: job, error: jobError } = await supabase
       .from('pipeline_jobs')
       .insert([{
-        user_id: user.id,
+        user_id: INTERNAL_USER_ID,
         connector_id: connector.id,
         type: 'tool_execution',
         status: 'queued' as const,
@@ -519,7 +376,7 @@ export function useConnectorData() {
       await supabase
         .from('action_logs')
         .insert([{
-          user_id: user.id,
+          user_id: INTERNAL_USER_ID,
           connector_id: connector.id,
           tool_name: toolName,
           request: args as Database['public']['Tables']['action_logs']['Insert']['request'],
@@ -533,7 +390,7 @@ export function useConnectorData() {
     }, 2000);
 
     return job;
-  }, [user, connectors, fetchLogs]);
+  }, [connectors, fetchLogs]);
 
   // Get connector with its connection status
   const getConnectorWithConnection = useCallback((slug: string) => {

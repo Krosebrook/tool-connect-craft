@@ -4,8 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { AuthProvider } from '@/context/AuthContext';
+import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import React from 'react';
 
@@ -26,10 +25,7 @@ describe('useConnectorData - mocked tests', () => {
     // Import dynamically to allow mocks to be set up first
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     // Check initial state shape
     expect(result.current).toHaveProperty('connectors');
@@ -50,10 +46,7 @@ describe('useConnectorData - mocked tests', () => {
   it('connectors is initially an empty array', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     expect(Array.isArray(result.current.connectors)).toBe(true);
   });
@@ -61,10 +54,7 @@ describe('useConnectorData - mocked tests', () => {
   it('tools is initially an empty Map', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     expect(result.current.tools).toBeInstanceOf(Map);
   });
@@ -72,10 +62,7 @@ describe('useConnectorData - mocked tests', () => {
   it('loading is initially true', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     expect(result.current.loading).toBe(true);
   });
@@ -83,25 +70,19 @@ describe('useConnectorData - mocked tests', () => {
   it('getToolsForConnector returns empty array for unknown connector', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     const tools = result.current.getToolsForConnector('unknown-id');
     expect(tools).toEqual([]);
   });
 
-  it('getConnectorWithConnection returns null for unknown connector', async () => {
+  it('getConnectorWithConnection returns undefined for unknown connector', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     const connectorData = result.current.getConnectorWithConnection('unknown-slug');
-    expect(connectorData).toBe(null);
+    expect(connectorData).toBe(undefined);
   });
 });
 
@@ -109,10 +90,7 @@ describe('useConnectorData - method signatures', () => {
   it('connect is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     expect(typeof result.current.connect).toBe('function');
   });
@@ -120,10 +98,7 @@ describe('useConnectorData - method signatures', () => {
   it('disconnect is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     expect(typeof result.current.disconnect).toBe('function');
   });
@@ -131,10 +106,7 @@ describe('useConnectorData - method signatures', () => {
   it('executeTool is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     expect(typeof result.current.executeTool).toBe('function');
   });
@@ -142,10 +114,7 @@ describe('useConnectorData - method signatures', () => {
   it('fetchEventsForJob is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
     
-    const wrapper = ({ children }: { children: ReactNode }) => 
-      React.createElement(AuthProvider, null, children);
-    
-    const { result } = renderHook(() => useConnectorData(), { wrapper });
+    const { result } = renderHook(() => useConnectorData());
     
     expect(typeof result.current.fetchEventsForJob).toBe('function');
   });
