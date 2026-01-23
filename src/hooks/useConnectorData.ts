@@ -295,7 +295,7 @@ export function useConnectorData() {
     });
   }, [toast]);
 
-  // Execute a tool
+  // Execute a tool via edge function
   const executeTool = useCallback(async (
     connectorSlug: string,
     toolName: string,
@@ -306,7 +306,7 @@ export function useConnectorData() {
       throw new Error('Connector not found');
     }
 
-    // Create the job
+    // Create the job first
     const { data: job, error: jobError } = await supabase
       .from('pipeline_jobs')
       .insert([{
@@ -329,68 +329,35 @@ export function useConnectorData() {
       .insert({
         job_id: job.id,
         level: 'info',
-        message: `Starting ${toolName} on ${connector.name}`,
+        message: `Queued ${toolName} on ${connector.name}`,
       });
 
-    // Simulate job execution (in production, this would call an edge function)
-    setTimeout(async () => {
-      await supabase
-        .from('pipeline_jobs')
-        .update({ 
-          status: 'running',
-          started_at: new Date().toISOString(),
-        })
-        .eq('id', job.id);
-
-      await supabase
-        .from('pipeline_events')
-        .insert({
-          job_id: job.id,
-          level: 'info',
-          message: 'Processing request...',
+    // Call the edge function (non-blocking)
+    supabase.functions.invoke('execute-tool', {
+      body: {
+        jobId: job.id,
+        connectorId: connector.id,
+        toolName,
+        args,
+        userId: INTERNAL_USER_ID,
+      },
+    }).then(({ error }) => {
+      if (error) {
+        console.error('Edge function error:', error);
+        toast({
+          title: 'Execution Error',
+          description: error.message,
+          variant: 'destructive',
         });
-    }, 500);
-
-    setTimeout(async () => {
-      const success = Math.random() > 0.2;
-      
-      await supabase
-        .from('pipeline_jobs')
-        .update({ 
-          status: success ? 'succeeded' : 'failed',
-          output: success ? { result: 'Sample output data', toolName } : null,
-          error: success ? null : 'Simulated error for demo',
-          finished_at: new Date().toISOString(),
-        })
-        .eq('id', job.id);
-
-      await supabase
-        .from('pipeline_events')
-        .insert({
-          job_id: job.id,
-          level: success ? 'info' : 'error',
-          message: success ? 'Tool execution completed successfully' : 'Tool execution failed',
-        });
-
-      // Create action log
-      await supabase
-        .from('action_logs')
-        .insert([{
-          user_id: INTERNAL_USER_ID,
-          connector_id: connector.id,
-          tool_name: toolName,
-          request: args as Database['public']['Tables']['action_logs']['Insert']['request'],
-          response: success ? { result: 'Sample output' } : null,
-          status: success ? 'success' : 'error',
-          error: success ? null : 'Simulated error',
-          latency_ms: Math.floor(1500 + Math.random() * 500),
-        }]);
-
+      }
+      // Refresh logs after execution completes
       fetchLogs();
-    }, 2000);
+    }).catch((err) => {
+      console.error('Edge function call failed:', err);
+    });
 
     return job;
-  }, [connectors, fetchLogs]);
+  }, [connectors, fetchLogs, toast]);
 
   // Get connector with its connection status
   const getConnectorWithConnection = useCallback((slug: string) => {
