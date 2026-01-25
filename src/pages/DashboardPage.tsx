@@ -1,14 +1,17 @@
 import { Layout } from '@/components/layout/Layout';
 import { useConnectors } from '@/context/ConnectorContext';
 import { JobCard } from '@/components/connectors/JobCard';
+import { HealthCheckDashboard } from '@/components/health/HealthCheckDashboard';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Activity, 
   Clock, 
   CheckCircle2, 
   AlertCircle,
   Plug2,
-  ArrowRight
+  ArrowRight,
+  HeartPulse
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -31,38 +34,52 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">
-            Monitor your connections, jobs, and recent activity.
+            Monitor your connections, jobs, and connector health.
           </p>
         </div>
-        
-        {/* Stats Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label="Active Connections"
-            value={activeConnections.length}
-            icon={Plug2}
-            color="text-success"
-          />
-          <StatCard
-            label="Running Jobs"
-            value={runningJobs.length}
-            icon={Activity}
-            color="text-primary"
-            pulse={runningJobs.length > 0}
-          />
-          <StatCard
-            label="Total Actions"
-            value={logs.length}
-            icon={Clock}
-            color="text-muted-foreground"
-          />
-          <StatCard
-            label="Success Rate"
-            value={`${successRate}%`}
-            icon={successRate === 100 ? CheckCircle2 : AlertCircle}
-            color={successRate >= 90 ? 'text-success' : successRate >= 70 ? 'text-warning' : 'text-destructive'}
-          />
-        </div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="overview" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="health" className="gap-2">
+              <HeartPulse className="h-4 w-4" />
+              Health
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Stats Grid */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                label="Active Connections"
+                value={activeConnections.length}
+                icon={Plug2}
+                color="text-success"
+              />
+              <StatCard
+                label="Running Jobs"
+                value={runningJobs.length}
+                icon={Activity}
+                color="text-primary"
+                pulse={runningJobs.length > 0}
+              />
+              <StatCard
+                label="Total Actions"
+                value={logs.length}
+                icon={Clock}
+                color="text-muted-foreground"
+              />
+              <StatCard
+                label="Success Rate"
+                value={`${successRate}%`}
+                icon={successRate === 100 ? CheckCircle2 : AlertCircle}
+                color={successRate >= 90 ? 'text-success' : successRate >= 70 ? 'text-warning' : 'text-destructive'}
+              />
+            </div>
         
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Recent Jobs */}
@@ -170,7 +187,13 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        </div>
+          </div>
+          </TabsContent>
+
+          <TabsContent value="health">
+            <HealthCheckDashboard />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
