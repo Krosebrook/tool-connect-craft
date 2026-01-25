@@ -6,6 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute per user
+const RATE_LIMIT_CONNECTOR_MAX = 100; // 100 requests per minute per connector
+
+// In-memory rate limit store (resets on function cold start)
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
 interface ExecuteToolRequest {
   jobId: string;
   connectorId: string;
@@ -114,6 +122,77 @@ async function createActionLog(
   if (error) {
     console.error("Failed to create action log:", error);
   }
+}
+
+// Rate limiting functions
+function getRateLimitKey(type: "user" | "connector", id: string): string {
+  return `${type}:${id}`;
+}
+
+function checkRateLimit(key: string, maxRequests: number): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+
+  // Clean up expired entries
+  if (entry && entry.resetAt <= now) {
+    rateLimitStore.delete(key);
+  }
+
+  const currentEntry = rateLimitStore.get(key);
+
+  if (!currentEntry) {
+    // First request in window
+    const resetAt = now + RATE_LIMIT_WINDOW_MS;
+    rateLimitStore.set(key, { count: 1, resetAt });
+    return { allowed: true, remaining: maxRequests - 1, resetAt };
+  }
+
+  if (currentEntry.count >= maxRequests) {
+    // Rate limit exceeded
+    return { allowed: false, remaining: 0, resetAt: currentEntry.resetAt };
+  }
+
+  // Increment counter
+  currentEntry.count++;
+  return { allowed: true, remaining: maxRequests - currentEntry.count, resetAt: currentEntry.resetAt };
+}
+
+async function checkRateLimits(
+  userId: string,
+  connectorId: string
+): Promise<{ allowed: boolean; error?: string; headers: Record<string, string> }> {
+  const userKey = getRateLimitKey("user", userId);
+  const connectorKey = getRateLimitKey("connector", connectorId);
+
+  const userLimit = checkRateLimit(userKey, RATE_LIMIT_MAX_REQUESTS);
+  const connectorLimit = checkRateLimit(connectorKey, RATE_LIMIT_CONNECTOR_MAX);
+
+  const headers: Record<string, string> = {
+    "X-RateLimit-Limit-User": String(RATE_LIMIT_MAX_REQUESTS),
+    "X-RateLimit-Remaining-User": String(userLimit.remaining),
+    "X-RateLimit-Reset-User": String(Math.ceil(userLimit.resetAt / 1000)),
+    "X-RateLimit-Limit-Connector": String(RATE_LIMIT_CONNECTOR_MAX),
+    "X-RateLimit-Remaining-Connector": String(connectorLimit.remaining),
+    "X-RateLimit-Reset-Connector": String(Math.ceil(connectorLimit.resetAt / 1000)),
+  };
+
+  if (!userLimit.allowed) {
+    return {
+      allowed: false,
+      error: `User rate limit exceeded. Retry after ${Math.ceil((userLimit.resetAt - Date.now()) / 1000)} seconds`,
+      headers,
+    };
+  }
+
+  if (!connectorLimit.allowed) {
+    return {
+      allowed: false,
+      error: `Connector rate limit exceeded. Retry after ${Math.ceil((connectorLimit.resetAt - Date.now()) / 1000)} seconds`,
+      headers,
+    };
+  }
+
+  return { allowed: true, headers };
 }
 
 // Validate tool arguments against schema
@@ -270,6 +349,28 @@ Deno.serve(async (req) => {
           error: "Missing required fields: jobId, connectorId, toolName, userId",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check rate limits
+    const rateLimitResult = await checkRateLimits(userId, connectorId);
+    if (!rateLimitResult.allowed) {
+      console.warn(`Rate limit exceeded for user ${userId} or connector ${connectorId}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: rateLimitResult.error,
+          retryAfter: rateLimitResult.headers["X-RateLimit-Reset-User"],
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            ...rateLimitResult.headers,
+            "Content-Type": "application/json",
+            "Retry-After": rateLimitResult.headers["X-RateLimit-Reset-User"],
+          },
+        }
       );
     }
 
