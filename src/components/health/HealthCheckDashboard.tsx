@@ -12,9 +12,12 @@ import {
   Server,
   Wifi,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHealthNotifications } from '@/hooks/useHealthNotifications';
 
 interface HealthCheckResult {
   connectorId: string;
@@ -59,6 +62,14 @@ export function HealthCheckDashboard() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
+  const {
+    supported: notificationsSupported,
+    enabled: notificationsEnabled,
+    toggleNotifications,
+    checkHealthChanges,
+    sendTestNotification,
+  } = useHealthNotifications();
+
   const fetchHealthStatus = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -76,6 +87,11 @@ export function HealthCheckDashboard() {
         setResults(data.results || []);
         setSummary(data.summary || null);
         setLastChecked(new Date());
+        
+        // Check for health changes and send notifications
+        if (data.results) {
+          checkHealthChanges(data.results);
+        }
       } else {
         throw new Error(data?.error || 'Health check failed');
       }
@@ -85,7 +101,7 @@ export function HealthCheckDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [checkHealthChanges]);
 
   useEffect(() => {
     fetchHealthStatus();
@@ -148,7 +164,30 @@ export function HealthCheckDashboard() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {notificationsSupported && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!notificationsEnabled) {
+                  toggleNotifications(true).then((success) => {
+                    if (success) sendTestNotification();
+                  });
+                } else {
+                  toggleNotifications(false);
+                }
+              }}
+              className={cn(notificationsEnabled && 'border-primary/50')}
+            >
+              {notificationsEnabled ? (
+                <Bell className="h-4 w-4 mr-2 text-primary" />
+              ) : (
+                <BellOff className="h-4 w-4 mr-2" />
+              )}
+              {notificationsEnabled ? 'Alerts On' : 'Alerts Off'}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
