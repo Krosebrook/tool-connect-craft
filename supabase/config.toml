@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.oauth-callback]
 verify_jwt = false
+
+[functions.token-refresh]
+verify_jwt = false

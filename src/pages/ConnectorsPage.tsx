@@ -1,19 +1,27 @@
 import { Layout } from '@/components/layout/Layout';
-import { ConnectorCard } from '@/components/connectors/ConnectorCard';
+import { OAuthConnectorCard } from '@/components/connectors/OAuthConnectorCard';
 import { useConnectors } from '@/context/ConnectorContext';
+import { useOAuthFlow } from '@/hooks/useOAuthFlow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CONNECTOR_CATEGORIES } from '@/types/seed-data';
 import { useState } from 'react';
-import { Search, Grid3X3, List } from 'lucide-react';
+import { Search, Grid3X3, List, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ConnectorsPage() {
-  const { connectors, connections, connect, disconnect } = useConnectors();
+  const { connectors, connections } = useConnectors();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
-  const [connectingId, setConnectingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const {
+    isConnecting,
+    connectorId: connectingConnectorId,
+    startOAuthFlow,
+    disconnectConnection,
+    refreshToken,
+  } = useOAuthFlow();
   
   const filteredConnectors = connectors.filter(connector => {
     const matchesSearch = connector.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -22,19 +30,10 @@ export default function ConnectorsPage() {
       (connector.category || '').toLowerCase() === category.toLowerCase();
     return matchesSearch && matchesCategory;
   });
-  
-  const handleConnect = async (connectorId: string) => {
-    setConnectingId(connectorId);
-    try {
-      await connect(connectorId);
-    } finally {
-      setConnectingId(null);
-    }
-  };
-  
-  const handleDisconnect = async (connectionId: string) => {
-    await disconnect(connectionId);
-  };
+
+  // Separate OAuth connectors for highlighting
+  const oauthConnectors = filteredConnectors.filter(c => c.auth_type === 'oauth');
+  const otherConnectors = filteredConnectors.filter(c => c.auth_type !== 'oauth');
   
   return (
     <Layout>
@@ -93,44 +92,81 @@ export default function ConnectorsPage() {
             </Button>
           </div>
         </div>
-        
-        {/* Connectors Grid */}
-        <div className={cn(
-          viewMode === 'grid' 
-            ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
-            : 'space-y-4'
-        )}>
-          {filteredConnectors.map((connector, index) => {
-            const connection = connections.find(c => c.connector_id === connector.id && c.status === 'active');
-            return (
-              <div 
-                key={connector.id}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <ConnectorCard
-                  connector={{
-                    ...connector,
-                    iconUrl: connector.icon_url,
-                    authType: connector.auth_type,
-                    isActive: connector.is_active ?? true,
-                    createdAt: connector.created_at,
-                  }}
-                  connection={connection ? {
-                    ...connection,
-                    userId: connection.user_id,
-                    connectorId: connection.connector_id,
-                    lastUsedAt: connection.last_used_at,
-                    createdAt: connection.created_at,
-                    updatedAt: connection.updated_at,
-                  } : undefined}
-                  onConnect={() => handleConnect(connector.id)}
-                  onDisconnect={() => connection && handleDisconnect(connection.id)}
-                  isConnecting={connectingId === connector.id}
-                />
-              </div>
-            );
-          })}
-        </div>
+
+        {/* OAuth Connectors Section */}
+        {oauthConnectors.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-foreground">OAuth Integrations</h2>
+              <span className="text-sm text-muted-foreground">({oauthConnectors.length})</span>
+            </div>
+            <div className={cn(
+              viewMode === 'grid' 
+                ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
+                : 'space-y-4'
+            )}>
+              {oauthConnectors.map((connector, index) => {
+                const connection = connections.find(
+                  c => c.connector_id === connector.id && 
+                  (c.status === 'active' || c.status === 'expired')
+                );
+                return (
+                  <div 
+                    key={connector.id}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <OAuthConnectorCard
+                      connector={connector}
+                      connection={connection}
+                      onConnect={startOAuthFlow}
+                      onDisconnect={disconnectConnection}
+                      onRefreshToken={refreshToken}
+                      isConnecting={isConnecting}
+                      isCurrentConnector={connectingConnectorId === connector.id}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Other Connectors Section */}
+        {otherConnectors.length > 0 && (
+          <div>
+            {oauthConnectors.length > 0 && (
+              <h2 className="text-lg font-semibold text-foreground mb-4">Other Integrations</h2>
+            )}
+            <div className={cn(
+              viewMode === 'grid' 
+                ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
+                : 'space-y-4'
+            )}>
+              {otherConnectors.map((connector, index) => {
+                const connection = connections.find(
+                  c => c.connector_id === connector.id && c.status === 'active'
+                );
+                return (
+                  <div 
+                    key={connector.id}
+                    style={{ animationDelay: `${(oauthConnectors.length + index) * 50}ms` }}
+                  >
+                    <OAuthConnectorCard
+                      connector={connector}
+                      connection={connection}
+                      onConnect={() => {}} // Non-OAuth connectors would need different handling
+                      onDisconnect={disconnectConnection}
+                      onRefreshToken={refreshToken}
+                      isConnecting={false}
+                      isCurrentConnector={false}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         
         {filteredConnectors.length === 0 && (
           <div className="text-center py-16">
