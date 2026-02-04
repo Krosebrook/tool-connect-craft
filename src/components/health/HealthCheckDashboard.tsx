@@ -14,10 +14,12 @@ import {
   Clock,
   AlertCircle,
   Bell,
-  BellOff
+  BellOff,
+  Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useHealthNotifications } from '@/hooks/useHealthNotifications';
+import { useHealthAlerts } from '@/hooks/useHealthAlerts';
 
 interface HealthCheckResult {
   connectorId: string;
@@ -70,6 +72,8 @@ export function HealthCheckDashboard() {
     sendTestNotification,
   } = useHealthNotifications();
 
+  const { sendHealthAlerts } = useHealthAlerts();
+
   const fetchHealthStatus = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -91,6 +95,20 @@ export function HealthCheckDashboard() {
         // Check for health changes and send notifications
         if (data.results) {
           checkHealthChanges(data.results);
+          
+          // Send email alerts for unhealthy connectors
+          const unhealthyConnectors = data.results.filter(
+            (r: HealthCheckResult) => r.status === 'unhealthy' || r.status === 'degraded'
+          );
+          if (unhealthyConnectors.length > 0) {
+            sendHealthAlerts(unhealthyConnectors.map((r: HealthCheckResult) => ({
+              connector: r.connectorName,
+              slug: r.connectorId,
+              status: r.status,
+              error: r.mcpServer?.error || r.restApi?.error,
+              latencyMs: r.mcpServer?.latencyMs || r.restApi?.latencyMs,
+            })));
+          }
         }
       } else {
         throw new Error(data?.error || 'Health check failed');

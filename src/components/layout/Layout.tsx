@@ -6,6 +6,7 @@ import {
   Settings, 
   Activity,
   Shield,
+  Link2,
   Menu,
   X
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import { useState } from 'react';
 
 const navItems = [
   { href: '/connectors', label: 'Connectors', icon: Plug2 },
+  { href: '/connections', label: 'Connections', icon: Link2 },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/settings/security', label: 'Security', icon: Shield },
 ];
