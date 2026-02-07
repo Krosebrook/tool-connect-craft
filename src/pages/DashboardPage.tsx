@@ -2,6 +2,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useConnectors } from '@/context/ConnectorContext';
 import { JobCard } from '@/components/connectors/JobCard';
 import { HealthCheckDashboard } from '@/components/health/HealthCheckDashboard';
+import { TokenExpiryBanner } from '@/components/dashboard/TokenExpiryBanner';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -52,6 +53,9 @@ export default function DashboardPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Token Expiry Warning */}
+            <TokenExpiryBanner />
+
             {/* Stats Grid */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
