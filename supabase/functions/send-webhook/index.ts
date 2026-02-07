@@ -1,0 +1,191 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface WebhookPayload {
+  event: string;
+  data: Record<string, unknown>;
+  timestamp: string;
+}
+
+async function sendWebhook(
+  url: string,
+  payload: WebhookPayload,
+  secret?: string
+): Promise<{ success: boolean; statusCode?: number; body?: string; error?: string }> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent': 'Lovable-Webhooks/1.0',
+    };
+
+    // Add HMAC signature if secret is provided
+    if (secret) {
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signature = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(JSON.stringify(payload))
+      );
+      const signatureHex = Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      headers['X-Webhook-Signature'] = `sha256=${signatureHex}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const body = await response.text();
+
+    return {
+      success: response.ok,
+      statusCode: response.status,
+      body: body.substring(0, 1000), // Limit stored response
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { event, connectionId, connectorId, userId, status, previousStatus } = await req.json();
+
+    console.log(`Processing webhook for event: ${event}, connection: ${connectionId}`);
+
+    // Get connector details
+    const { data: connector } = await supabase
+      .from('connectors')
+      .select('name, slug')
+      .eq('id', connectorId)
+      .single();
+
+    // Build payload
+    const payload: WebhookPayload = {
+      event,
+      timestamp: new Date().toISOString(),
+      data: {
+        connectionId,
+        connectorId,
+        connectorName: connector?.name || 'Unknown',
+        connectorSlug: connector?.slug || 'unknown',
+        userId,
+        status,
+        previousStatus,
+      },
+    };
+
+    // Get all active webhooks for this user that are subscribed to this event
+    const { data: webhooks, error: webhooksError } = await supabase
+      .from('webhooks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .contains('events', [event]);
+
+    if (webhooksError) {
+      console.error('Error fetching webhooks:', webhooksError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch webhooks' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!webhooks || webhooks.length === 0) {
+      console.log('No webhooks configured for this event');
+      return new Response(
+        JSON.stringify({ message: 'No webhooks to send', count: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Sending to ${webhooks.length} webhook(s)`);
+
+    // Send webhooks and record deliveries
+    const results = await Promise.all(
+      webhooks.map(async (webhook) => {
+        // Create delivery record
+        const { data: delivery, error: deliveryError } = await supabase
+          .from('webhook_deliveries')
+          .insert({
+            webhook_id: webhook.id,
+            event_type: event,
+            payload,
+            status: 'pending',
+          })
+          .select()
+          .single();
+
+        if (deliveryError) {
+          console.error('Error creating delivery:', deliveryError);
+          return { webhookId: webhook.id, success: false, error: 'Failed to create delivery' };
+        }
+
+        // Send the webhook
+        const result = await sendWebhook(webhook.url, payload, webhook.secret);
+
+        // Update delivery record
+        await supabase
+          .from('webhook_deliveries')
+          .update({
+            status: result.success ? 'delivered' : 'failed',
+            response_code: result.statusCode,
+            response_body: result.body || result.error,
+            attempts: 1,
+            delivered_at: result.success ? new Date().toISOString() : null,
+          })
+          .eq('id', delivery.id);
+
+        console.log(`Webhook ${webhook.id}: ${result.success ? 'delivered' : 'failed'}`);
+
+        return {
+          webhookId: webhook.id,
+          deliveryId: delivery.id,
+          success: result.success,
+          statusCode: result.statusCode,
+        };
+      })
+    );
+
+    const successCount = results.filter(r => r.success).length;
+
+    return new Response(
+      JSON.stringify({
+        message: `Sent ${successCount}/${webhooks.length} webhooks`,
+        results,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Webhook error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

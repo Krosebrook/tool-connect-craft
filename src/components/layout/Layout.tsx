@@ -3,12 +3,13 @@ import { cn } from '@/lib/utils';
 import { 
   Plug2, 
   LayoutDashboard, 
-  Settings, 
   Activity,
   Shield,
   Link2,
   Menu,
-  X
+  X,
+  Clock,
+  Webhook
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -17,6 +18,8 @@ const navItems = [
   { href: '/connectors', label: 'Connectors', icon: Plug2 },
   { href: '/connections', label: 'Connections', icon: Link2 },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/scheduler', label: 'Scheduler', icon: Clock },
+  { href: '/webhooks', label: 'Webhooks', icon: Webhook },
   { href: '/settings/security', label: 'Security', icon: Shield },
 ];
 
