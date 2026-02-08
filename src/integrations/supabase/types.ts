@@ -147,6 +147,69 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_connection_active: boolean
+          email_connection_expired: boolean
+          email_enabled: boolean
+          email_health_alerts: boolean
+          email_token_refreshed: boolean
+          id: string
+          push_connection_active: boolean
+          push_connection_expired: boolean
+          push_enabled: boolean
+          push_health_alerts: boolean
+          push_token_refreshed: boolean
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string
+          user_id: string
+          webhook_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          email_connection_active?: boolean
+          email_connection_expired?: boolean
+          email_enabled?: boolean
+          email_health_alerts?: boolean
+          email_token_refreshed?: boolean
+          id?: string
+          push_connection_active?: boolean
+          push_connection_expired?: boolean
+          push_enabled?: boolean
+          push_health_alerts?: boolean
+          push_token_refreshed?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          email_connection_active?: boolean
+          email_connection_expired?: boolean
+          email_enabled?: boolean
+          email_health_alerts?: boolean
+          email_token_refreshed?: boolean
+          id?: string
+          push_connection_active?: boolean
+          push_connection_expired?: boolean
+          push_enabled?: boolean
+          push_health_alerts?: boolean
+          push_token_refreshed?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_enabled?: boolean
+        }
+        Relationships: []
+      }
       oauth_transactions: {
         Row: {
           code_verifier_hash: string
