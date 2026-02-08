@@ -11,57 +11,107 @@ interface WebhookPayload {
   timestamp: string;
 }
 
-async function sendWebhook(
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1000; // 1 second
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function sendWebhookWithRetry(
   url: string,
   payload: WebhookPayload,
-  secret?: string
-): Promise<{ success: boolean; statusCode?: number; body?: string; error?: string }> {
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': 'Lovable-Webhooks/1.0',
-    };
+  secret?: string,
+  maxRetries: number = MAX_RETRIES
+): Promise<{ success: boolean; statusCode?: number; body?: string; error?: string; attempts: number }> {
+  let lastError: string | undefined;
+  let lastStatusCode: number | undefined;
+  let lastBody: string | undefined;
 
-    // Add HMAC signature if secret is provided
-    if (secret) {
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(secret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-      const signature = await crypto.subtle.sign(
-        'HMAC',
-        key,
-        encoder.encode(JSON.stringify(payload))
-      );
-      const signatureHex = Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      headers['X-Webhook-Signature'] = `sha256=${signatureHex}`;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Lovable-Webhooks/1.0',
+        'X-Webhook-Attempt': attempt.toString(),
+      };
+
+      // Add HMAC signature if secret is provided
+      if (secret) {
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey(
+          'raw',
+          encoder.encode(secret),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        );
+        const signature = await crypto.subtle.sign(
+          'HMAC',
+          key,
+          encoder.encode(JSON.stringify(payload))
+        );
+        const signatureHex = Array.from(new Uint8Array(signature))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+        headers['X-Webhook-Signature'] = `sha256=${signatureHex}`;
+      }
+
+      console.log(`Webhook attempt ${attempt}/${maxRetries} to ${url}`);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      const body = await response.text();
+      lastStatusCode = response.status;
+      lastBody = body.substring(0, 1000);
+
+      if (response.ok) {
+        console.log(`Webhook delivered successfully on attempt ${attempt}`);
+        return {
+          success: true,
+          statusCode: response.status,
+          body: lastBody,
+          attempts: attempt,
+        };
+      }
+
+      // Don't retry on client errors (4xx) except 429 (rate limit)
+      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+        console.log(`Webhook failed with client error ${response.status}, not retrying`);
+        return {
+          success: false,
+          statusCode: response.status,
+          body: lastBody,
+          attempts: attempt,
+        };
+      }
+
+      lastError = `HTTP ${response.status}: ${body.substring(0, 200)}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Webhook attempt ${attempt} failed:`, lastError);
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    const body = await response.text();
-
-    return {
-      success: response.ok,
-      statusCode: response.status,
-      body: body.substring(0, 1000), // Limit stored response
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
+    // Exponential backoff before next retry
+    if (attempt < maxRetries) {
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1); // 1s, 2s, 4s
+      console.log(`Retrying in ${delay}ms...`);
+      await sleep(delay);
+    }
   }
+
+  console.log(`Webhook failed after ${maxRetries} attempts`);
+  return {
+    success: false,
+    statusCode: lastStatusCode,
+    body: lastBody,
+    error: lastError,
+    attempts: maxRetries,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -146,28 +196,29 @@ Deno.serve(async (req) => {
           return { webhookId: webhook.id, success: false, error: 'Failed to create delivery' };
         }
 
-        // Send the webhook
-        const result = await sendWebhook(webhook.url, payload, webhook.secret);
+        // Send the webhook with retry logic
+        const result = await sendWebhookWithRetry(webhook.url, payload, webhook.secret);
 
-        // Update delivery record
+        // Update delivery record with final status
         await supabase
           .from('webhook_deliveries')
           .update({
             status: result.success ? 'delivered' : 'failed',
             response_code: result.statusCode,
             response_body: result.body || result.error,
-            attempts: 1,
+            attempts: result.attempts,
             delivered_at: result.success ? new Date().toISOString() : null,
           })
           .eq('id', delivery.id);
 
-        console.log(`Webhook ${webhook.id}: ${result.success ? 'delivered' : 'failed'}`);
+        console.log(`Webhook ${webhook.id}: ${result.success ? 'delivered' : 'failed'} after ${result.attempts} attempt(s)`);
 
         return {
           webhookId: webhook.id,
           deliveryId: delivery.id,
           success: result.success,
           statusCode: result.statusCode,
+          attempts: result.attempts,
         };
       })
     );
