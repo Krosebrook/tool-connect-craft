@@ -16,6 +16,7 @@ const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const SchedulerPage = lazy(() => import("./pages/SchedulerPage"));
 const WebhooksPage = lazy(() => import("./pages/WebhooksPage"));
+const NotificationPreferencesPage = lazy(() => import("./pages/NotificationPreferencesPage"));
 const SecuritySettingsPage = lazy(() => import("./pages/SecuritySettingsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/scheduler" element={<SchedulerPage />} />
                 <Route path="/webhooks" element={<WebhooksPage />} />
+                <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
                 <Route path="/settings/security" element={<SecuritySettingsPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

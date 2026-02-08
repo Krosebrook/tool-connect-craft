@@ -9,7 +9,8 @@ import {
   Menu,
   X,
   Clock,
-  Webhook
+  Webhook,
+  Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/scheduler', label: 'Scheduler', icon: Clock },
   { href: '/webhooks', label: 'Webhooks', icon: Webhook },
+  { href: '/settings/notifications', label: 'Notifications', icon: Bell },
   { href: '/settings/security', label: 'Security', icon: Shield },
 ];
 
