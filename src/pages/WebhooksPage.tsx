@@ -13,17 +13,15 @@ import {
   Webhook, 
   Plus, 
   Trash2, 
-  RefreshCw, 
   CheckCircle2,
   XCircle,
-  Clock,
-  Send,
   Eye,
   EyeOff
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { WebhookDeliveryHistory } from '@/components/webhooks/WebhookDeliveryHistory';
+import { TestWebhookButton } from '@/components/webhooks/TestWebhookButton';
 
 interface WebhookConfig {
   id: string;
@@ -41,7 +39,9 @@ interface WebhookDelivery {
   event_type: string;
   status: string;
   response_code: number | null;
+  response_body: string | null;
   attempts: number;
+  payload: Record<string, unknown>;
   created_at: string;
   delivered_at: string | null;
 }
@@ -91,14 +91,20 @@ export default function WebhooksPage() {
       .from('webhook_deliveries')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error) {
       console.error('Error fetching deliveries:', error);
       return;
     }
 
-    setDeliveries(data || []);
+    // Cast the payload field properly
+    const typedDeliveries = (data || []).map(d => ({
+      ...d,
+      payload: (d.payload as Record<string, unknown>) || {},
+    }));
+
+    setDeliveries(typedDeliveries);
     setLoading(false);
   };
 
@@ -425,6 +431,7 @@ export default function WebhooksPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
+                          <TestWebhookButton webhook={webhook} />
                           <Switch
                             checked={webhook.is_active}
                             onCheckedChange={() => toggleWebhook(webhook)}
@@ -446,85 +453,13 @@ export default function WebhooksPage() {
           </CardContent>
         </Card>
 
-        {/* Recent Deliveries */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Send className="h-5 w-5" />
-                  Recent Deliveries
-                </CardTitle>
-                <CardDescription>
-                  Recent webhook delivery attempts and their status
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={fetchDeliveries}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Loading deliveries...
-              </div>
-            ) : deliveries.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Clock className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>No deliveries yet</p>
-                <p className="text-sm">Deliveries will appear here when events are triggered</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Event</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Response</TableHead>
-                    <TableHead>Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell>
-                        <Badge variant="outline">{delivery.event_type}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {delivery.status === 'delivered' ? (
-                          <Badge className="bg-success/20 text-success">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Delivered
-                          </Badge>
-                        ) : delivery.status === 'failed' ? (
-                          <Badge variant="destructive">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Failed
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Pending
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {delivery.response_code && (
-                          <code className="text-xs">{delivery.response_code}</code>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {formatDistanceToNow(new Date(delivery.created_at), { addSuffix: true })}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        {/* Delivery History */}
+        <WebhookDeliveryHistory
+          deliveries={deliveries}
+          webhooks={webhooks}
+          loading={loading}
+          onRefresh={fetchDeliveries}
+        />
       </div>
     </Layout>
   );
