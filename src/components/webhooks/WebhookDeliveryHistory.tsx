@@ -14,9 +14,12 @@ import {
   Eye,
   RotateCcw,
   Timer,
-  Hash
+  Hash,
+  Loader2
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface WebhookDelivery {
   id: string;
@@ -43,14 +46,44 @@ interface WebhookDeliveryHistoryProps {
   onRefresh: () => void;
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 export function WebhookDeliveryHistory({ 
   deliveries, 
   webhooks, 
   loading, 
   onRefresh 
 }: WebhookDeliveryHistoryProps) {
+  const { toast } = useToast();
   const [selectedDelivery, setSelectedDelivery] = useState<WebhookDelivery | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  const retryDelivery = async (delivery: WebhookDelivery) => {
+    setRetryingId(delivery.id);
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/retry-webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+        },
+        body: JSON.stringify({ deliveryId: delivery.id }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast({ title: 'Retry Successful', description: `Delivered on attempt ${result.attempts}` });
+      } else {
+        toast({ title: 'Retry Failed', description: result.error || `Failed after ${result.attempts} attempts`, variant: 'destructive' });
+      }
+      onRefresh();
+    } catch {
+      toast({ title: 'Error', description: 'Failed to retry delivery', variant: 'destructive' });
+    } finally {
+      setRetryingId(null);
+    }
+  };
 
   const getWebhookName = (webhookId: string) => {
     const webhook = webhooks.find(w => w.id === webhookId);
@@ -208,13 +241,29 @@ export function WebhookDeliveryHistory({
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => viewDetails(delivery)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {delivery.status === 'failed' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => retryDelivery(delivery)}
+                            disabled={retryingId === delivery.id}
+                          >
+                            {retryingId === delivery.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => viewDetails(delivery)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
