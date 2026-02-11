@@ -61,6 +61,7 @@ export function WebhookDeliveryHistory({
   const [selectedDelivery, setSelectedDelivery] = useState<WebhookDelivery | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [bulkRetrying, setBulkRetrying] = useState(false);
   const [eventFilter, setEventFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -98,6 +99,39 @@ export function WebhookDeliveryHistory({
       setRetryingId(null);
     }
   };
+
+  const failedDeliveries = deliveries.filter(d => d.status === 'failed');
+
+  const bulkRetryAll = async () => {
+    if (failedDeliveries.length === 0) return;
+    setBulkRetrying(true);
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const delivery of failedDeliveries) {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/retry-webhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+          body: JSON.stringify({ deliveryId: delivery.id }),
+        });
+        const result = await response.json();
+        if (result.success) succeeded++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+
+    toast({
+      title: 'Bulk Retry Complete',
+      description: `${succeeded} succeeded, ${failed} failed out of ${failedDeliveries.length} retries`,
+      variant: failed > 0 && succeeded === 0 ? 'destructive' : 'default',
+    });
+    onRefresh();
+    setBulkRetrying(false);
+  };
+
 
   const getWebhookName = (webhookId: string) => {
     const webhook = webhooks.find(w => w.id === webhookId);
@@ -209,6 +243,22 @@ export function WebhookDeliveryHistory({
                   <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
+              {failedDeliveries.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={bulkRetryAll}
+                  disabled={bulkRetrying}
+                  className="gap-1"
+                >
+                  {bulkRetrying ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4" />
+                  )}
+                  Retry All ({failedDeliveries.length})
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={onRefresh}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
