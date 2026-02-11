@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   RefreshCw, 
   CheckCircle2,
@@ -15,7 +16,8 @@ import {
   RotateCcw,
   Timer,
   Hash,
-  Loader2
+  Loader2,
+  Filter
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,6 +61,18 @@ export function WebhookDeliveryHistory({
   const [selectedDelivery, setSelectedDelivery] = useState<WebhookDelivery | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [eventFilter, setEventFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Derive unique event types from deliveries
+  const eventTypes = Array.from(new Set(deliveries.map(d => d.event_type))).sort();
+
+  // Filter deliveries
+  const filteredDeliveries = deliveries.filter(d => {
+    const matchesEvent = eventFilter === 'all' || d.event_type === eventFilter;
+    const matchesStatus = statusFilter === 'all' || d.status === statusFilter;
+    return matchesEvent && matchesStatus;
+  });
 
   const retryDelivery = async (delivery: WebhookDelivery) => {
     setRetryingId(delivery.id);
@@ -171,10 +185,35 @@ export function WebhookDeliveryHistory({
                 Detailed webhook delivery attempts with retry information
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={onRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Select value={eventFilter} onValueChange={setEventFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Event type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Events</SelectItem>
+                  {eventTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={onRefresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -182,11 +221,15 @@ export function WebhookDeliveryHistory({
             <div className="text-center py-8 text-muted-foreground">
               Loading deliveries...
             </div>
-          ) : deliveries.length === 0 ? (
+          ) : filteredDeliveries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p>No deliveries yet</p>
-              <p className="text-sm">Deliveries will appear here when events are triggered</p>
+              <p>{deliveries.length === 0 ? 'No deliveries yet' : 'No deliveries match filters'}</p>
+              <p className="text-sm">
+                {deliveries.length === 0
+                  ? 'Deliveries will appear here when events are triggered'
+                  : 'Try adjusting the event type or status filter'}
+              </p>
             </div>
           ) : (
             <Table>
@@ -207,7 +250,7 @@ export function WebhookDeliveryHistory({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {deliveries.map((delivery) => (
+                {filteredDeliveries.map((delivery) => (
                   <TableRow key={delivery.id}>
                     <TableCell className="font-medium">
                       {getWebhookName(delivery.webhook_id)}
