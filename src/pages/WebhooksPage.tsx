@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { WebhookDeliveryHistory } from '@/components/webhooks/WebhookDeliveryHistory';
 import { TestWebhookButton } from '@/components/webhooks/TestWebhookButton';
+import { DeliveryStatsChart } from '@/components/webhooks/DeliveryStatsChart';
 
 interface WebhookConfig {
   id: string;
@@ -375,6 +376,8 @@ export default function WebhooksPage() {
         </div>
 
         {/* Webhooks List */}
+        <DeliveryStatsChart deliveries={deliveries} />
+
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
