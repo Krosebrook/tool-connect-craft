@@ -114,6 +114,14 @@ async function sendWebhookWithRetry(
   };
 }
 
+function applyTemplate(template: Record<string, unknown>, variables: Record<string, string>): unknown {
+  const json = JSON.stringify(template);
+  const result = json.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    return variables[key] ?? '';
+  });
+  return JSON.parse(result);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -158,6 +166,19 @@ Deno.serve(async (req) => {
       .eq('is_active', true)
       .contains('events', [event]);
 
+    // Template variables for substitution
+    const templateVars: Record<string, string> = {
+      event,
+      timestamp: payload.timestamp,
+      connectionId: connectionId || '',
+      connectorId: connectorId || '',
+      connectorName: connector?.name || 'Unknown',
+      connectorSlug: connector?.slug || 'unknown',
+      userId: userId || '',
+      status: status || '',
+      previousStatus: previousStatus || '',
+    };
+
     if (webhooksError) {
       console.error('Error fetching webhooks:', webhooksError);
       return new Response(
@@ -196,8 +217,13 @@ Deno.serve(async (req) => {
           return { webhookId: webhook.id, success: false, error: 'Failed to create delivery' };
         }
 
+        // Determine the payload to send: custom template or default
+        const webhookPayload = webhook.payload_template
+          ? applyTemplate(webhook.payload_template, templateVars)
+          : payload;
+
         // Send the webhook with retry logic
-        const result = await sendWebhookWithRetry(webhook.url, payload, webhook.secret);
+        const result = await sendWebhookWithRetry(webhook.url, webhookPayload as WebhookPayload, webhook.secret);
 
         // Update delivery record with final status
         await supabase

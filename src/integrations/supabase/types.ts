@@ -491,6 +491,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          payload_template: Json | null
           secret: string | null
           updated_at: string
           url: string
@@ -502,6 +503,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          payload_template?: Json | null
           secret?: string | null
           updated_at?: string
           url: string
@@ -513,6 +515,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          payload_template?: Json | null
           secret?: string | null
           updated_at?: string
           url?: string

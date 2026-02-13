@@ -1,0 +1,1 @@
+ALTER TABLE public.webhooks ADD COLUMN payload_template jsonb DEFAULT NULL;
