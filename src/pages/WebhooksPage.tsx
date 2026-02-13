@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Textarea } from '@/components/ui/textarea';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ interface WebhookConfig {
   events: string[];
   is_active: boolean;
   created_at: string;
+  payload_template: unknown;
 }
 
 interface WebhookDelivery {
@@ -71,6 +73,8 @@ export default function WebhooksPage() {
   const [formUrl, setFormUrl] = useState('');
   const [formSecret, setFormSecret] = useState('');
   const [formEvents, setFormEvents] = useState<string[]>([]);
+  const [formTemplate, setFormTemplate] = useState('');
+  const [templateError, setTemplateError] = useState<string | null>(null);
 
   const fetchWebhooks = async () => {
     const { data, error } = await supabase
@@ -133,6 +137,23 @@ export default function WebhooksPage() {
     setFormUrl('');
     setFormSecret('');
     setFormEvents([]);
+    setFormTemplate('');
+    setTemplateError(null);
+  };
+
+  const validateTemplate = (value: string): boolean => {
+    if (!value.trim()) {
+      setTemplateError(null);
+      return true;
+    }
+    try {
+      JSON.parse(value);
+      setTemplateError(null);
+      return true;
+    } catch {
+      setTemplateError('Invalid JSON format');
+      return false;
+    }
   };
 
   const createWebhook = async () => {
@@ -145,16 +166,22 @@ export default function WebhooksPage() {
       return;
     }
 
+    if (formTemplate && !validateTemplate(formTemplate)) {
+      return;
+    }
+
+    const insertData: Record<string, unknown> = {
+      user_id: INTERNAL_USER_ID,
+      name: formName,
+      url: formUrl,
+      secret: formSecret || null,
+      events: formEvents,
+      is_active: true,
+      payload_template: formTemplate ? JSON.parse(formTemplate) : null,
+    };
     const { error } = await supabase
       .from('webhooks')
-      .insert({
-        user_id: INTERNAL_USER_ID,
-        name: formName,
-        url: formUrl,
-        secret: formSecret || null,
-        events: formEvents,
-        is_active: true,
-      });
+      .insert(insertData as any);
 
     if (error) {
       toast({
@@ -322,6 +349,30 @@ export default function WebhooksPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="template">
+                    Payload Template (optional)
+                    <span className="text-muted-foreground text-xs ml-2">
+                      JSON template with {'{{variable}}'} placeholders
+                    </span>
+                  </Label>
+                  <Textarea
+                    id="template"
+                    placeholder={`{\n  "event": "{{event}}",\n  "connector": "{{connectorName}}",\n  "status": "{{status}}",\n  "timestamp": "{{timestamp}}"\n}`}
+                    value={formTemplate}
+                    onChange={(e) => {
+                      setFormTemplate(e.target.value);
+                      validateTemplate(e.target.value);
+                    }}
+                    className="font-mono text-sm min-h-[120px]"
+                  />
+                  {templateError && (
+                    <p className="text-xs text-destructive">{templateError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Available variables: {'{{event}}'}, {'{{timestamp}}'}, {'{{connectionId}}'}, {'{{connectorId}}'}, {'{{connectorName}}'}, {'{{connectorSlug}}'}, {'{{userId}}'}, {'{{status}}'}, {'{{previousStatus}}'}
+                  </p>
                 </div>
               </div>
               <DialogFooter>
