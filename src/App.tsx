@@ -12,6 +12,7 @@ import { PageLoader } from "@/components/ui/loading-spinner";
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const ConnectorsPage = lazy(() => import("./pages/ConnectorsPage"));
 const ConnectorDetailPage = lazy(() => import("./pages/ConnectorDetailPage"));
+const AddMCPPage = lazy(() => import("./pages/AddMCPPage"));
 const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const SchedulerPage = lazy(() => import("./pages/SchedulerPage"));
@@ -51,6 +52,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/connectors" element={<ConnectorsPage />} />
+                <Route path="/connectors/add-mcp" element={<AddMCPPage />} />
                 <Route path="/connectors/:slug" element={<ConnectorDetailPage />} />
                 <Route path="/connections" element={<ConnectionsPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />

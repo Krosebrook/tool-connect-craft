@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { ConnectorIcon } from '@/components/connectors/ConnectorIcon';
 import { ToolExecutor } from '@/components/connectors/ToolExecutor';
 import { JobCard } from '@/components/connectors/JobCard';
+import { MCPDetailSection } from '@/components/connectors/MCPDetailSection';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import type { ToolSchema } from '@/types';
 import { 
@@ -232,6 +233,17 @@ export default function ConnectorDetailPage() {
           </div>
         </div>
         
+        {/* MCP Server Details */}
+        {connectorData.mcp_server_url && (
+          <MCPDetailSection
+            connectorId={connectorData.id}
+            connectorSlug={connectorData.slug}
+            mcpServerUrl={connectorData.mcp_server_url}
+            authType={connectorData.auth_type}
+            toolCount={tools.length}
+          />
+        )}
+
         {/* Tabs */}
         <Tabs defaultValue="tools" className="space-y-6">
           <TabsList>

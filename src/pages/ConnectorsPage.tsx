@@ -3,11 +3,12 @@ import { OAuthConnectorCard } from '@/components/connectors/OAuthConnectorCard';
 import { useConnectors } from '@/context/ConnectorContext';
 import { useOAuthFlow } from '@/hooks/useOAuthFlow';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { CONNECTOR_CATEGORIES } from '@/types/seed-data';
 import { useState } from 'react';
-import { Search, Grid3X3, List, Shield } from 'lucide-react';
+import { Search, Grid3X3, List, Shield, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ConnectorsPage() {
@@ -40,11 +41,26 @@ export default function ConnectorsPage() {
     <Layout>
       <div className="container mx-auto max-w-7xl px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Connectors</h1>
-          <p className="text-muted-foreground">
-            Browse and manage your service integrations. Connect via OAuth, API keys, or MCP protocol.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Connectors</h1>
+            <p className="text-muted-foreground">
+              Browse and manage your service integrations. Connect via OAuth, API keys, or MCP protocol.
+            </p>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild variant="glow" className="gap-2 mt-4 md:mt-0 shrink-0">
+                <Link to="/connectors/add-mcp">
+                  <Plus className="h-4 w-4" />
+                  Register MCP Server
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Register any MCP-compatible server to discover and use its tools</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         
         {/* Filters */}
