@@ -20,6 +20,10 @@ import {
   Phone,
   Send,
   Columns3,
+  Gamepad2,
+  CheckSquare,
+  LayoutDashboard,
+  MessagesSquare,
 } from 'lucide-react';
 
 interface ConnectorIconProps {
@@ -47,6 +51,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'twilio': Phone,
   'sendgrid': Send,
   'linear': Columns3,
+  'discord': Gamepad2,
+  'asana': CheckSquare,
+  'monday': LayoutDashboard,
+  'intercom': MessagesSquare,
 };
 
 const colorMap: Record<string, string> = {
@@ -68,6 +76,10 @@ const colorMap: Record<string, string> = {
   'twilio': 'text-red-500 bg-red-500/10',
   'sendgrid': 'text-blue-400 bg-blue-400/10',
   'linear': 'text-indigo-400 bg-indigo-400/10',
+  'discord': 'text-violet-400 bg-violet-400/10',
+  'asana': 'text-rose-400 bg-rose-400/10',
+  'monday': 'text-amber-400 bg-amber-400/10',
+  'intercom': 'text-blue-400 bg-blue-400/10',
 };
 
 export function ConnectorIcon({ slug, name, className }: ConnectorIconProps) {
