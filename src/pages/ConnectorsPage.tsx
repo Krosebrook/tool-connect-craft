@@ -232,7 +232,7 @@ export default function ConnectorsPage() {
         )}
         
         {filteredConnectors.length === 0 && (
-          <div className="text-center py-16 space-y-4">
+          <div key={category} className="text-center py-16 space-y-4 animate-fade-in">
             {(() => {
               const emptyStates: Record<string, { icon: React.ReactNode; title: string; description: string; cta?: { label: string; action: () => void } }> = {
                 mcp: {
