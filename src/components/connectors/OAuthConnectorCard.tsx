@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ConnectorIcon } from './ConnectorIcon';
+import { MCPHealthIndicator } from './MCPHealthIndicator';
 import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -46,6 +47,8 @@ interface OAuthConnectorCardProps {
   onRefreshToken: (connectionId: string) => void;
   isConnecting: boolean;
   isCurrentConnector: boolean;
+  healthStatus?: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+  healthLatency?: number | null;
 }
 
 export function OAuthConnectorCard({
@@ -56,6 +59,8 @@ export function OAuthConnectorCard({
   onRefreshToken,
   isConnecting,
   isCurrentConnector,
+  healthStatus,
+  healthLatency,
 }: OAuthConnectorCardProps) {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -283,16 +288,21 @@ export function OAuthConnectorCard({
             {connector.auth_type === 'api_key' && 'API Key'}
             {connector.auth_type === 'none' && 'No Auth'}
           </span>
-          {connection?.expires_at && (
-            <span className={cn(
-              'text-xs',
-              new Date(connection.expires_at) < new Date() 
-                ? 'text-destructive' 
-                : 'text-muted-foreground'
-            )}>
-              {formatExpiry(connection.expires_at)}
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {connector.mcp_server_url && healthStatus && (
+              <MCPHealthIndicator status={healthStatus} latencyMs={healthLatency} />
+            )}
+            {connection?.expires_at && (
+              <span className={cn(
+                'text-xs',
+                new Date(connection.expires_at) < new Date() 
+                  ? 'text-destructive' 
+                  : 'text-muted-foreground'
+              )}>
+                {formatExpiry(connection.expires_at)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

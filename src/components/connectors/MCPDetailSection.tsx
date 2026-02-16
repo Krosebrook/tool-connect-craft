@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Globe, Server } from 'lucide-react';
 import { useState } from 'react';
 import type { Json } from '@/integrations/supabase/types';
+import { MCPHealthIndicator } from './MCPHealthIndicator';
+import { useMCPHealth } from '@/hooks/useMCPHealth';
 
 interface MCPDetailSectionProps {
   connectorId: string;
@@ -25,6 +27,8 @@ export function MCPDetailSection({
   onToolsRefreshed,
 }: MCPDetailSectionProps) {
   const [isRediscovering, setIsRediscovering] = useState(false);
+  const { getHealth } = useMCPHealth(mcpServerUrl ? [connectorId] : []);
+  const health = getHealth(connectorId);
 
   if (!mcpServerUrl) return null;
 
@@ -93,7 +97,8 @@ export function MCPDetailSection({
           <code className="text-sm text-muted-foreground break-all">{maskedUrl}</code>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <MCPHealthIndicator status={health.status} latencyMs={health.latencyMs} />
           <Badge variant="secondary">{toolCount} tools</Badge>
           <Badge variant="outline">MCP Protocol</Badge>
           <Badge variant="outline" className="capitalize">{authType} auth</Badge>

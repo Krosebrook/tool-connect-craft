@@ -2,6 +2,7 @@ import { Layout } from '@/components/layout/Layout';
 import { OAuthConnectorCard } from '@/components/connectors/OAuthConnectorCard';
 import { useConnectors } from '@/context/ConnectorContext';
 import { useOAuthFlow } from '@/hooks/useOAuthFlow';
+import { useMCPHealth } from '@/hooks/useMCPHealth';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,11 @@ export default function ConnectorsPage() {
     disconnectConnection,
     refreshToken,
   } = useOAuthFlow();
+
+  const mcpConnectorIds = connectors
+    .filter(c => c.mcp_server_url)
+    .map(c => c.id);
+  const { getHealth } = useMCPHealth(mcpConnectorIds);
   
   const filteredConnectors = connectors.filter(connector => {
     const matchesSearch = connector.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -177,6 +183,8 @@ export default function ConnectorsPage() {
                       onRefreshToken={refreshToken}
                       isConnecting={isConnecting}
                       isCurrentConnector={connectingConnectorId === connector.id}
+                      healthStatus={connector.mcp_server_url ? getHealth(connector.id).status : undefined}
+                      healthLatency={connector.mcp_server_url ? getHealth(connector.id).latencyMs : undefined}
                     />
                   </div>
                 );
@@ -208,11 +216,13 @@ export default function ConnectorsPage() {
                     <OAuthConnectorCard
                       connector={connector}
                       connection={connection}
-                      onConnect={() => {}} // Non-OAuth connectors would need different handling
+                      onConnect={() => {}}
                       onDisconnect={disconnectConnection}
                       onRefreshToken={refreshToken}
                       isConnecting={false}
                       isCurrentConnector={false}
+                      healthStatus={connector.mcp_server_url ? getHealth(connector.id).status : undefined}
+                      healthLatency={connector.mcp_server_url ? getHealth(connector.id).latencyMs : undefined}
                     />
                   </div>
                 );
