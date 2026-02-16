@@ -234,7 +234,7 @@ export default function ConnectorsPage() {
         {filteredConnectors.length === 0 && (
           <div className="text-center py-16 space-y-4">
             {(() => {
-              const emptyStates: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
+              const emptyStates: Record<string, { icon: React.ReactNode; title: string; description: string; cta?: { label: string; action: () => void } }> = {
                 mcp: {
                   icon: <Server className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
                   title: 'No MCP servers registered yet',
@@ -244,26 +244,31 @@ export default function ConnectorsPage() {
                   icon: <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
                   title: 'No communication connectors found',
                   description: 'Connect messaging platforms like Slack or Gmail to send messages and manage communications.',
+                  cta: { label: 'Browse All Connectors', action: () => setCategory('all') },
                 },
                 productivity: {
                   icon: <Zap className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
                   title: 'No productivity connectors found',
                   description: 'Integrate tools like Notion or Airtable to streamline your workflows and boost productivity.',
+                  cta: { label: 'Browse All Connectors', action: () => setCategory('all') },
                 },
                 development: {
                   icon: <Code2 className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
                   title: 'No development connectors found',
                   description: 'Connect platforms like GitHub or Vercel to manage code, deployments, and CI/CD pipelines.',
+                  cta: { label: 'Browse All Connectors', action: () => setCategory('all') },
                 },
                 storage: {
                   icon: <HardDrive className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
                   title: 'No storage connectors found',
                   description: 'Add cloud storage integrations like Google Drive to access and manage your files.',
+                  cta: { label: 'Browse All Connectors', action: () => setCategory('all') },
                 },
                 database: {
                   icon: <Database className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
                   title: 'No database connectors found',
                   description: 'Connect database tools like Airtable to query, create, and manage your structured data.',
+                  cta: { label: 'Browse All Connectors', action: () => setCategory('all') },
                 },
                 custom: {
                   icon: <Puzzle className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
@@ -279,14 +284,26 @@ export default function ConnectorsPage() {
                     {state.icon}
                     <h3 className="text-lg font-semibold text-foreground">{state.title}</h3>
                     <p className="text-muted-foreground max-w-md mx-auto">{state.description}</p>
-                    {category === 'mcp' && (
-                      <Button asChild variant="glow" className="gap-2 mt-2">
-                        <Link to="/connectors/add-mcp">
-                          <Plus className="h-4 w-4" />
-                          Register MCP Server
-                        </Link>
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-center gap-3 mt-2">
+                      {category === 'mcp' && (
+                        <Button asChild variant="glow" className="gap-2">
+                          <Link to="/connectors/add-mcp">
+                            <Plus className="h-4 w-4" />
+                            Register MCP Server
+                          </Link>
+                        </Button>
+                      )}
+                      {(category === 'mcp' || category === 'custom') && (
+                        <Button variant="outline" className="gap-2" onClick={() => setCategory('all')}>
+                          Browse All Connectors
+                        </Button>
+                      )}
+                      {state.cta && (
+                        <Button variant="outline" className="gap-2" onClick={state.cta.action}>
+                          {state.cta.label}
+                        </Button>
+                      )}
+                    </div>
                   </>
                 );
               }
