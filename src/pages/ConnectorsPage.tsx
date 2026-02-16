@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { CONNECTOR_CATEGORIES } from '@/types/seed-data';
 import { useState } from 'react';
-import { Search, Grid3X3, List, Shield, Plus, Server } from 'lucide-react';
+import { Search, Grid3X3, List, Shield, Plus, Server, MessageSquare, Zap, Code2, HardDrive, Database, Puzzle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ConnectorsPage() {
@@ -233,23 +233,65 @@ export default function ConnectorsPage() {
         
         {filteredConnectors.length === 0 && (
           <div className="text-center py-16 space-y-4">
-            {category === 'mcp' ? (
-              <>
-                <Server className="h-12 w-12 text-muted-foreground/50 mx-auto" />
-                <h3 className="text-lg font-semibold text-foreground">No MCP servers registered yet</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Register your first MCP-compatible server to discover its tools and make them available to your team.
-                </p>
-                <Button asChild variant="glow" className="gap-2 mt-2">
-                  <Link to="/connectors/add-mcp">
-                    <Plus className="h-4 w-4" />
-                    Register MCP Server
-                  </Link>
-                </Button>
-              </>
-            ) : (
-              <p className="text-muted-foreground">No connectors found matching your criteria.</p>
-            )}
+            {(() => {
+              const emptyStates: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
+                mcp: {
+                  icon: <Server className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
+                  title: 'No MCP servers registered yet',
+                  description: 'Register your first MCP-compatible server to discover its tools and make them available to your team.',
+                },
+                communication: {
+                  icon: <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
+                  title: 'No communication connectors found',
+                  description: 'Connect messaging platforms like Slack or Gmail to send messages and manage communications.',
+                },
+                productivity: {
+                  icon: <Zap className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
+                  title: 'No productivity connectors found',
+                  description: 'Integrate tools like Notion or Airtable to streamline your workflows and boost productivity.',
+                },
+                development: {
+                  icon: <Code2 className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
+                  title: 'No development connectors found',
+                  description: 'Connect platforms like GitHub or Vercel to manage code, deployments, and CI/CD pipelines.',
+                },
+                storage: {
+                  icon: <HardDrive className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
+                  title: 'No storage connectors found',
+                  description: 'Add cloud storage integrations like Google Drive to access and manage your files.',
+                },
+                database: {
+                  icon: <Database className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
+                  title: 'No database connectors found',
+                  description: 'Connect database tools like Airtable to query, create, and manage your structured data.',
+                },
+                custom: {
+                  icon: <Puzzle className="h-12 w-12 text-muted-foreground/50 mx-auto" />,
+                  title: 'No custom connectors found',
+                  description: 'Register custom integrations via API keys or MCP protocol to extend your toolset.',
+                },
+              };
+
+              const state = emptyStates[category];
+              if (state) {
+                return (
+                  <>
+                    {state.icon}
+                    <h3 className="text-lg font-semibold text-foreground">{state.title}</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">{state.description}</p>
+                    {category === 'mcp' && (
+                      <Button asChild variant="glow" className="gap-2 mt-2">
+                        <Link to="/connectors/add-mcp">
+                          <Plus className="h-4 w-4" />
+                          Register MCP Server
+                        </Link>
+                      </Button>
+                    )}
+                  </>
+                );
+              }
+              return <p className="text-muted-foreground">No connectors found matching your criteria.</p>;
+            })()}
           </div>
         )}
       </div>
