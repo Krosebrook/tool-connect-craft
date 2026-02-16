@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -21,6 +22,19 @@ export function ConnectorFilters({
   viewMode,
   onViewModeChange,
 }: ConnectorFiltersProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-8">
       <Tooltip>
@@ -28,15 +42,19 @@ export function ConnectorFilters({
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              ref={inputRef}
               placeholder="Search connectors..."
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
+              className="pl-10 pr-16"
             />
+            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              ⌘K
+            </kbd>
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Filter connectors by name or description</p>
+          <p>Filter connectors by name or description (⌘K)</p>
         </TooltipContent>
       </Tooltip>
 
