@@ -21,6 +21,7 @@ const NotificationPreferencesPage = lazy(() => import("./pages/NotificationPrefe
 const SecuritySettingsPage = lazy(() => import("./pages/SecuritySettingsPage"));
 const MCPEndpointPage = lazy(() => import("./pages/MCPEndpointPage"));
 const MarketplacePage = lazy(() => import("./pages/MarketplacePage"));
+const QuickSetupGuidePage = lazy(() => import("./pages/QuickSetupGuidePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Configure React Query with sensible defaults
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="/settings/security" element={<SecuritySettingsPage />} />
                 <Route path="/settings/mcp-endpoint" element={<MCPEndpointPage />} />
                 <Route path="/marketplace" element={<MarketplacePage />} />
+                <Route path="/guide" element={<QuickSetupGuidePage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
