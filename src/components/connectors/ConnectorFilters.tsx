@@ -46,6 +46,12 @@ export function ConnectorFilters({
               placeholder="Search connectors..."
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  onSearchChange('');
+                  inputRef.current?.blur();
+                }
+              }}
               className="pl-10 pr-16"
             />
             <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
