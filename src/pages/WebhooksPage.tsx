@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Webhook, Plus, Trash2, CheckCircle2, XCircle, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -140,10 +141,15 @@ export default function WebhooksPage() {
             <h1 className="text-3xl font-bold text-foreground mb-2">Webhooks</h1>
             <p className="text-muted-foreground">Configure webhooks to notify external systems of connection events.</p>
           </div>
-          <Button className="gap-2" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Add Webhook
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button className="gap-2" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Add Webhook
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Create a new webhook endpoint for event notifications</p></TooltipContent>
+          </Tooltip>
         </div>
 
         <WebhookFormDialog
@@ -155,39 +161,54 @@ export default function WebhooksPage() {
 
         {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Webhooks</p>
-                  <p className="text-2xl font-bold">{webhooks.filter(w => w.is_active).length}</p>
-                </div>
-                <Webhook className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Delivered</p>
-                  <p className="text-2xl font-bold text-success">{deliveredCount}</p>
-                </div>
-                <CheckCircle2 className="h-8 w-8 text-success" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Failed</p>
-                  <p className="text-2xl font-bold text-destructive">{failedCount}</p>
-                </div>
-                <XCircle className="h-8 w-8 text-destructive" />
-              </div>
-            </CardContent>
-          </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Active Webhooks</p>
+                      <p className="text-2xl font-bold">{webhooks.filter(w => w.is_active).length}</p>
+                    </div>
+                    <Webhook className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Webhook endpoints currently enabled and receiving events</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Delivered</p>
+                      <p className="text-2xl font-bold text-success">{deliveredCount}</p>
+                    </div>
+                    <CheckCircle2 className="h-8 w-8 text-success" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Total webhook deliveries that received a 2xx response</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Failed</p>
+                      <p className="text-2xl font-bold text-destructive">{failedCount}</p>
+                    </div>
+                    <XCircle className="h-8 w-8 text-destructive" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Deliveries that failed after all retry attempts</p></TooltipContent>
+          </Tooltip>
         </div>
 
         <DeliveryStatsChart deliveries={deliveries} />
@@ -223,14 +244,24 @@ export default function WebhooksPage() {
                     <TableRow key={webhook.id}>
                       <TableCell className="font-medium">{webhook.name}</TableCell>
                       <TableCell>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {webhook.url.substring(0, 40)}...
-                        </code>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <code className="text-xs bg-muted px-2 py-1 rounded cursor-default">
+                              {webhook.url.substring(0, 40)}...
+                            </code>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm break-all"><p>{webhook.url}</p></TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {webhook.events.map((event) => (
-                            <Badge key={event} variant="outline" className="text-xs">{event.split('.')[1]}</Badge>
+                            <Tooltip key={event}>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="text-xs cursor-default">{event.split('.')[1]}</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Full event name: {event}</p></TooltipContent>
+                            </Tooltip>
                           ))}
                         </div>
                       </TableCell>
@@ -242,13 +273,30 @@ export default function WebhooksPage() {
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
                           <TestWebhookButton webhook={webhook} />
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(webhook)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Switch checked={webhook.is_active} onCheckedChange={() => toggleWebhook(webhook)} />
-                          <Button variant="ghost" size="icon" onClick={() => deleteWebhook(webhook)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(webhook)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Edit webhook configuration</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <Switch checked={webhook.is_active} onCheckedChange={() => toggleWebhook(webhook)} />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent><p>{webhook.is_active ? 'Disable this webhook' : 'Enable this webhook'}</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => deleteWebhook(webhook)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Permanently delete this webhook</p></TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

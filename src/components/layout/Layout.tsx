@@ -13,16 +13,17 @@ import {
   Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useState } from 'react';
 
 const navItems = [
-  { href: '/connectors', label: 'Connectors', icon: Plug2 },
-  { href: '/connections', label: 'Connections', icon: Link2 },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/scheduler', label: 'Scheduler', icon: Clock },
-  { href: '/webhooks', label: 'Webhooks', icon: Webhook },
-  { href: '/settings/notifications', label: 'Notifications', icon: Bell },
-  { href: '/settings/security', label: 'Security', icon: Shield },
+  { href: '/connectors', label: 'Connectors', icon: Plug2, tooltip: 'Browse and manage service integrations' },
+  { href: '/connections', label: 'Connections', icon: Link2, tooltip: 'View active OAuth connections and token status' },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, tooltip: 'Monitor jobs, logs, and connector health' },
+  { href: '/scheduler', label: 'Scheduler', icon: Clock, tooltip: 'Manage automated cron jobs and background tasks' },
+  { href: '/webhooks', label: 'Webhooks', icon: Webhook, tooltip: 'Configure webhook endpoints for event notifications' },
+  { href: '/settings/notifications', label: 'Notifications', icon: Bell, tooltip: 'Set email, push, and webhook alert preferences' },
+  { href: '/settings/security', label: 'Security', icon: Shield, tooltip: 'Token management, session security, and privacy' },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -51,29 +52,42 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {navItems.map((item) => {
               const isActive = location.pathname.startsWith(item.href);
               return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={item.href}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                        isActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{item.tooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </nav>
           
           {/* Right side */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-              <Activity className="h-3.5 w-3.5 text-success pulse-live" />
-              <span>All systems operational</span>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground cursor-default">
+                  <Activity className="h-3.5 w-3.5 text-success pulse-live" />
+                  <span>All systems operational</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>All connectors and services are healthy</p>
+              </TooltipContent>
+            </Tooltip>
             
             {/* Mobile menu button */}
             <Button
@@ -106,7 +120,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     )}
                   >
                     <item.icon className="h-5 w-5" />
-                    {item.label}
+                    <div>
+                      <div>{item.label}</div>
+                      <div className="text-xs text-muted-foreground font-normal">{item.tooltip}</div>
+                    </div>
                   </Link>
                 );
               })}

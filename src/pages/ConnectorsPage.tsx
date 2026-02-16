@@ -4,6 +4,7 @@ import { useConnectors } from '@/context/ConnectorContext';
 import { useOAuthFlow } from '@/hooks/useOAuthFlow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { CONNECTOR_CATEGORIES } from '@/types/seed-data';
 import { useState } from 'react';
 import { Search, Grid3X3, List, Shield } from 'lucide-react';
@@ -49,47 +50,74 @@ export default function ConnectorsPage() {
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search connectors..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search connectors..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Filter connectors by name or description</p>
+            </TooltipContent>
+          </Tooltip>
           
           {/* Category Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
             {CONNECTOR_CATEGORIES.map((cat) => (
-              <Button
-                key={cat.slug}
-                variant={category === cat.slug ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setCategory(cat.slug)}
-                className="shrink-0"
-              >
-                {cat.name}
-              </Button>
+              <Tooltip key={cat.slug}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={category === cat.slug ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCategory(cat.slug)}
+                    className="shrink-0"
+                  >
+                    {cat.name}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{cat.slug === 'all' ? 'Show all connectors' : `Show only ${cat.name} connectors`}</p>
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
           
           {/* View Toggle */}
           <div className="flex items-center gap-1 border border-border rounded-lg p-1">
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="icon-sm"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="icon-sm"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="icon-sm"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Grid view — show connectors as cards</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="icon-sm"
+                  onClick={() => setViewMode('list')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>List view — show connectors in a compact list</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -97,9 +125,18 @@ export default function ConnectorsPage() {
         {oauthConnectors.length > 0 && (
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-4">
-              <Shield className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">OAuth Integrations</h2>
-              <span className="text-sm text-muted-foreground">({oauthConnectors.length})</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2 cursor-default">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold text-foreground">OAuth Integrations</h2>
+                    <span className="text-sm text-muted-foreground">({oauthConnectors.length})</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Connectors using OAuth 2.0 + PKCE for secure token-based authentication</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
             <div className={cn(
               viewMode === 'grid' 

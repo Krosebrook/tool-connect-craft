@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { 
   Bell, 
   Mail, 
@@ -160,14 +161,19 @@ export default function NotificationPreferencesPage() {
               Configure how and when you receive alerts about your connections.
             </p>
           </div>
-          <Button onClick={savePreferences} disabled={saving}>
-            {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Changes
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={savePreferences} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Persist your notification preferences to the database</p></TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="space-y-6">
@@ -184,9 +190,14 @@ export default function NotificationPreferencesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="email-enabled" className="flex-1">
-                  Enable email notifications
-                </Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Label htmlFor="email-enabled" className="flex-1 cursor-default">
+                      Enable email notifications
+                    </Label>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Master toggle for all email alerts</p></TooltipContent>
+                </Tooltip>
                 <Switch
                   id="email-enabled"
                   checked={preferences.email_enabled}
@@ -199,9 +210,14 @@ export default function NotificationPreferencesPage() {
                   <Separator />
                   <div className="space-y-3 pl-4">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="email-active" className="text-sm text-muted-foreground">
-                        Connection activated
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="email-active" className="text-sm text-muted-foreground cursor-default">
+                            Connection activated
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Notify when a new OAuth connection is successfully established</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="email-active"
                         checked={preferences.email_connection_active}
@@ -209,9 +225,14 @@ export default function NotificationPreferencesPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="email-expired" className="text-sm text-muted-foreground">
-                        Connection expired
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="email-expired" className="text-sm text-muted-foreground cursor-default">
+                            Connection expired
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Notify when an OAuth token expires and needs refreshing</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="email-expired"
                         checked={preferences.email_connection_expired}
@@ -219,9 +240,14 @@ export default function NotificationPreferencesPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="email-refresh" className="text-sm text-muted-foreground">
-                        Token refreshed
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="email-refresh" className="text-sm text-muted-foreground cursor-default">
+                            Token refreshed
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Notify when a token is automatically refreshed</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="email-refresh"
                         checked={preferences.email_token_refreshed}
@@ -229,9 +255,14 @@ export default function NotificationPreferencesPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="email-health" className="text-sm text-muted-foreground">
-                        Health alerts
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="email-health" className="text-sm text-muted-foreground cursor-default">
+                            Health alerts
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Notify when a connector endpoint becomes degraded or unreachable</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="email-health"
                         checked={preferences.email_health_alerts}
@@ -257,9 +288,14 @@ export default function NotificationPreferencesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="push-enabled" className="flex-1">
-                  Enable push notifications
-                </Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Label htmlFor="push-enabled" className="flex-1 cursor-default">
+                      Enable push notifications
+                    </Label>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Master toggle for browser push notifications (requires permission)</p></TooltipContent>
+                </Tooltip>
                 <Switch
                   id="push-enabled"
                   checked={preferences.push_enabled}
@@ -272,9 +308,14 @@ export default function NotificationPreferencesPage() {
                   <Separator />
                   <div className="space-y-3 pl-4">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="push-active" className="text-sm text-muted-foreground">
-                        Connection activated
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="push-active" className="text-sm text-muted-foreground cursor-default">
+                            Connection activated
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Push alert when a new connection is established</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="push-active"
                         checked={preferences.push_connection_active}
@@ -282,9 +323,14 @@ export default function NotificationPreferencesPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="push-expired" className="text-sm text-muted-foreground">
-                        Connection expired
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="push-expired" className="text-sm text-muted-foreground cursor-default">
+                            Connection expired
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Push alert when a token expires</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="push-expired"
                         checked={preferences.push_connection_expired}
@@ -292,9 +338,14 @@ export default function NotificationPreferencesPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="push-refresh" className="text-sm text-muted-foreground">
-                        Token refreshed
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="push-refresh" className="text-sm text-muted-foreground cursor-default">
+                            Token refreshed
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Push alert when a token is refreshed</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="push-refresh"
                         checked={preferences.push_token_refreshed}
@@ -302,9 +353,14 @@ export default function NotificationPreferencesPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="push-health" className="text-sm text-muted-foreground">
-                        Health alerts
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="push-health" className="text-sm text-muted-foreground cursor-default">
+                            Health alerts
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Push alert for connector health changes</p></TooltipContent>
+                      </Tooltip>
                       <Switch
                         id="push-health"
                         checked={preferences.push_health_alerts}
@@ -331,7 +387,12 @@ export default function NotificationPreferencesPage() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="webhook-enabled">Enable webhook notifications</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Label htmlFor="webhook-enabled" className="cursor-default">Enable webhook notifications</Label>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Forward events to webhook endpoints configured on the Webhooks page</p></TooltipContent>
+                  </Tooltip>
                   <p className="text-sm text-muted-foreground mt-1">
                     Configure webhook endpoints in the Webhooks settings page
                   </p>
@@ -358,9 +419,14 @@ export default function NotificationPreferencesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="quiet-enabled" className="flex-1">
-                  Enable quiet hours
-                </Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Label htmlFor="quiet-enabled" className="flex-1 cursor-default">
+                      Enable quiet hours
+                    </Label>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Silence non-critical alerts during the configured time window</p></TooltipContent>
+                </Tooltip>
                 <Switch
                   id="quiet-enabled"
                   checked={preferences.quiet_hours_enabled}
@@ -373,9 +439,14 @@ export default function NotificationPreferencesPage() {
                   <Separator />
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <Label htmlFor="quiet-start" className="text-sm text-muted-foreground">
-                        Start time
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="quiet-start" className="text-sm text-muted-foreground cursor-default">
+                            Start time
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>When quiet hours begin (your local time)</p></TooltipContent>
+                      </Tooltip>
                       <Input
                         id="quiet-start"
                         type="time"
@@ -385,9 +456,14 @@ export default function NotificationPreferencesPage() {
                       />
                     </div>
                     <div className="flex-1">
-                      <Label htmlFor="quiet-end" className="text-sm text-muted-foreground">
-                        End time
-                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Label htmlFor="quiet-end" className="text-sm text-muted-foreground cursor-default">
+                            End time
+                          </Label>
+                        </TooltipTrigger>
+                        <TooltipContent><p>When quiet hours end and notifications resume</p></TooltipContent>
+                      </Tooltip>
                       <Input
                         id="quiet-end"
                         type="time"
