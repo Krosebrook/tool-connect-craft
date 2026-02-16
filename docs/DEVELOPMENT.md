@@ -8,11 +8,10 @@
 4. [Component Development](#component-development)
 5. [State Management](#state-management)
 6. [Database Operations](#database-operations)
-7. [Adding New Connectors](#adding-new-connectors)
+7. [Edge Functions](#edge-functions)
 8. [Testing](#testing)
 9. [Debugging](#debugging)
 10. [Common Tasks](#common-tasks)
-11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -20,12 +19,11 @@
 
 ### Prerequisites
 
-Ensure you have:
 - Node.js 18+ (LTS recommended)
 - npm 9+
 - Git
-- A code editor (VS Code recommended)
-- Supabase account
+- VS Code (recommended)
+- Supabase account (free tier)
 
 ### Initial Setup
 
@@ -40,7 +38,6 @@ Ensure you have:
    ```bash
    cp .env.example .env
    ```
-   
    Fill in your Supabase credentials:
    ```env
    VITE_SUPABASE_URL=https://xxxxx.supabase.co
@@ -48,40 +45,21 @@ Ensure you have:
    ```
 
 3. **Database Setup**
-   
-   Option A: Using Supabase CLI (recommended)
    ```bash
-   # Install Supabase CLI
-   npm install -g supabase
-   
-   # Link to your project
    supabase link --project-ref your-project-ref
-   
-   # Push migrations
    supabase db push
-   
-   # Generate TypeScript types
-   supabase gen types typescript --local > src/integrations/supabase/types.ts
    ```
-   
-   Option B: Manual via Dashboard
-   - Go to Supabase Dashboard → SQL Editor
-   - Copy/paste `supabase/migrations/*.sql`
-   - Execute the migration
 
 4. **Start Development Server**
    ```bash
    npm run dev
    ```
-   
    Visit `http://localhost:5173`
 
 ### Recommended VS Code Extensions
 
 - ESLint
-- Prettier
 - Tailwind CSS IntelliSense
-- TypeScript Vue Plugin (Volar)
 - Error Lens
 - GitLens
 
@@ -91,71 +69,89 @@ Ensure you have:
 
 ```
 tool-connect-craft/
-├── public/                  # Static assets
-│   └── favicon.ico
+├── public/                     # Static assets, PWA icons, service worker
+│   ├── icons/                  # PWA icon set (72–512px)
+│   ├── manifest.json           # PWA manifest
+│   ├── sw.js                   # Service worker
+│   └── robots.txt
 │
 ├── src/
-│   ├── components/          # React components
-│   │   ├── auth/            # Authentication related
-│   │   │   └── ProtectedRoute.tsx
-│   │   ├── connectors/      # Connector UI components
-│   │   │   ├── ConnectorCard.tsx
-│   │   │   ├── ConnectorList.tsx
-│   │   │   └── ToolExecutor.tsx
-│   │   ├── layout/          # Layout components
-│   │   │   ├── Layout.tsx
-│   │   │   ├── Header.tsx
-│   │   │   └── Footer.tsx
-│   │   └── ui/              # Reusable UI primitives (shadcn)
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       └── ...
+│   ├── components/
+│   │   ├── connectors/         # ConnectorCard, OAuthConnectorCard, JobCard, ToolExecutor
+│   │   ├── dashboard/          # TokenExpiryBanner
+│   │   ├── health/             # HealthCheckDashboard
+│   │   ├── layout/             # Layout (sidebar + content shell)
+│   │   ├── webhooks/           # WebhookFormDialog, DeliveryStatsChart,
+│   │   │                         TestWebhookButton, WebhookDeliveryHistory
+│   │   ├── ui/                 # 50+ shadcn/ui primitives
+│   │   ├── ErrorBoundary.tsx
+│   │   └── NavLink.tsx
 │   │
-│   ├── context/             # React Context providers
-│   │   ├── AuthContext.tsx  # Authentication state
-│   │   └── ConnectorContext.tsx  # Connector data
+│   ├── context/
+│   │   └── ConnectorContext.tsx # Connector state + realtime subscriptions
 │   │
-│   ├── hooks/               # Custom React hooks
-│   │   ├── useConnectorData.ts
-│   │   └── use-toast.ts
+│   ├── hooks/
+│   │   ├── useConnectorData.ts # Core data fetching & mutations
+│   │   ├── useOAuthFlow.ts     # OAuth PKCE initiation
+│   │   ├── useHealthAlerts.ts  # Health monitoring alerts
+│   │   ├── useHealthNotifications.ts
+│   │   ├── useKeyboardShortcuts.ts
+│   │   └── useLocalStorage.ts
 │   │
-│   ├── integrations/        # External services
-│   │   └── supabase/
-│   │       ├── client.ts    # Supabase client instance
-│   │       └── types.ts     # Generated DB types
+│   ├── integrations/supabase/
+│   │   ├── client.ts           # Auto-generated Supabase client
+│   │   └── types.ts            # Auto-generated database types
 │   │
-│   ├── lib/                 # Utility functions
-│   │   └── utils.ts
+│   ├── lib/
+│   │   ├── config.ts           # Centralized config & feature flags
+│   │   ├── formatters.ts       # Date, number, byte formatting
+│   │   ├── validation.ts       # Zod schemas & validators
+│   │   ├── service-worker.ts   # SW registration
+│   │   └── utils.ts            # cn() utility
 │   │
-│   ├── pages/               # Route components
+│   ├── pages/
 │   │   ├── LandingPage.tsx
-│   │   ├── AuthPage.tsx
+│   │   ├── DashboardPage.tsx
 │   │   ├── ConnectorsPage.tsx
 │   │   ├── ConnectorDetailPage.tsx
-│   │   ├── DashboardPage.tsx
+│   │   ├── ConnectionsPage.tsx
+│   │   ├── WebhooksPage.tsx
+│   │   ├── SchedulerPage.tsx
 │   │   ├── SecuritySettingsPage.tsx
+│   │   ├── NotificationPreferencesPage.tsx
 │   │   └── NotFound.tsx
 │   │
-│   ├── types/               # TypeScript definitions
-│   │   ├── connector.ts     # Domain types
-│   │   ├── seed-data.ts     # Sample data types
-│   │   └── index.ts         # Type exports
+│   ├── types/
+│   │   ├── connector.ts        # Domain type definitions
+│   │   ├── seed-data.ts        # Sample connector data
+│   │   └── index.ts
 │   │
-│   ├── App.tsx              # Root component
-│   ├── main.tsx             # Entry point
-│   └── index.css            # Global styles
+│   ├── test/
+│   │   └── setup.ts            # Vitest global setup
+│   │
+│   ├── App.tsx                 # Route definitions + lazy loading
+│   ├── main.tsx                # Entry point
+│   └── index.css               # Global styles + design tokens
 │
 ├── supabase/
-│   ├── config.toml          # Supabase config
-│   └── migrations/          # Database migrations
+│   ├── config.toml             # Supabase project config
+│   └── functions/
+│       ├── execute-tool/       # Tool execution engine
+│       ├── health-check/       # Connector health monitoring
+│       ├── oauth-start/        # OAuth PKCE initiation
+│       ├── oauth-callback/     # OAuth token exchange
+│       ├── token-refresh/      # Automatic token renewal
+│       ├── send-webhook/       # Webhook delivery + retries
+│       ├── test-webhook/       # Webhook endpoint testing
+│       ├── retry-webhook/      # Manual delivery retry
+│       └── send-health-alert/  # Email alerts via Resend
 │
-├── docs/                    # Documentation
-├── .env                     # Environment variables (not in git)
-├── .gitignore
-├── package.json
-├── tsconfig.json            # TypeScript config
-├── vite.config.ts           # Vite config
-└── tailwind.config.ts       # Tailwind config
+├── docs/                       # Project documentation
+├── .github/                    # CI workflows, issue/PR templates
+├── vitest.config.ts
+├── tailwind.config.ts
+├── vite.config.ts
+└── lighthouserc.json           # Lighthouse CI config
 ```
 
 ---
@@ -164,140 +160,59 @@ tool-connect-craft/
 
 ### TypeScript
 
-- **Always use TypeScript** - no `.js` or `.jsx` files
-- **Enable strict mode** - already configured in `tsconfig.json`
-- **Prefer interfaces over types** for object shapes
-  ```typescript
-  // Good
-  interface User {
-    id: string;
-    email: string;
-  }
-  
-  // Acceptable for unions/intersections
-  type Status = 'active' | 'inactive';
-  ```
+- **Always use TypeScript** — no `.js` or `.jsx` files
+- **Strict mode** enabled in `tsconfig.json`
+- **Avoid `any`** — use `unknown` if type is truly unknown
+- **Use explicit return types** for exported functions
 
-- **Use explicit return types** for functions
-  ```typescript
-  // Good
-  function getUser(id: string): Promise<User> {
-    return fetchUser(id);
-  }
-  ```
+```typescript
+// Good
+interface UserProfile {
+  id: string;
+  email: string;
+}
 
-- **Avoid `any`** - use `unknown` if type is truly unknown
-  ```typescript
-  // Bad
-  const data: any = JSON.parse(response);
-  
-  // Good
-  const data: unknown = JSON.parse(response);
-  if (isUser(data)) {
-    // Type guard
-    console.log(data.email);
-  }
-  ```
+function fetchUser(id: string): Promise<UserProfile> {
+  return supabase.from('profiles').select('*').eq('id', id).single().then(({ data }) => data!);
+}
+```
 
 ### React
 
-- **Functional components only** - no class components
-- **Use hooks** for state and side effects
-- **Named exports** for components
-  ```typescript
-  // Good
-  export function ConnectorCard({ connector }: Props) {
-    // ...
-  }
-  
-  // Also acceptable
-  export const ConnectorCard = ({ connector }: Props) => {
-    // ...
-  };
-  ```
+- Functional components only — no class components
+- Named exports preferred
+- Destructure props in function signature
+- Props interfaces named with `Props` suffix
 
-- **Props interface** named with `Props` suffix
-  ```typescript
-  interface ConnectorCardProps {
-    connector: Connector;
-    onConnect: (id: string) => void;
-  }
-  ```
+```typescript
+interface ConnectorCardProps {
+  connector: Connector;
+  onConnect: (id: string) => void;
+}
 
-- **Destructure props** in function signature
-  ```typescript
-  export function ConnectorCard({ connector, onConnect }: ConnectorCardProps) {
-    // ...
-  }
-  ```
+export function ConnectorCard({ connector, onConnect }: ConnectorCardProps) {
+  // ...
+}
+```
 
 ### Naming Conventions
 
-- **Components**: PascalCase (`ConnectorCard.tsx`)
-- **Hooks**: camelCase with `use` prefix (`useConnectorData.ts`)
-- **Utilities**: camelCase (`formatDate.ts`)
-- **Types/Interfaces**: PascalCase (`Connector`, `UserConnection`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_RETRY_ATTEMPTS`)
-- **Files**: Match export name (`ConnectorCard.tsx` exports `ConnectorCard`)
+| Type | Convention | Example |
+|------|-----------|---------|
+| Components | PascalCase | `ConnectorCard.tsx` |
+| Hooks | camelCase + `use` prefix | `useConnectorData.ts` |
+| Utilities | camelCase | `formatDate.ts` |
+| Types/Interfaces | PascalCase | `Connector`, `UserConnection` |
+| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_ATTEMPTS` |
+| Files | Match export name | `ConnectorCard.tsx` → `ConnectorCard` |
 
-### File Organization
+### Styling
 
-- One component per file
-- Co-locate related files (component + styles + tests)
-- Group by feature, not by type
-  ```
-  components/
-  ├── auth/
-  │   ├── LoginForm.tsx
-  │   ├── SignupForm.tsx
-  │   └── ProtectedRoute.tsx
-  └── connectors/
-      ├── ConnectorCard.tsx
-      └── ConnectorList.tsx
-  ```
-
-### Import Order
-
-1. External dependencies (React, libraries)
-2. Internal absolute imports (`@/components`)
-3. Relative imports
-4. Type imports
-5. Styles
-
-```typescript
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext';
-
-import { formatDate } from './utils';
-
-import type { Connector } from '@/types/connector';
-
-import './styles.css';
-```
-
-### CSS/Styling
-
-- **Tailwind CSS first** - use utility classes
-- **shadcn/ui components** - for consistent UI
-- **CSS modules** - only if Tailwind insufficient
-- **Avoid inline styles** - except for dynamic values
-
-```tsx
-// Good - Tailwind utilities
-<div className="flex items-center gap-4 p-6 rounded-lg border">
-  <Button variant="primary" size="lg">
-    Connect
-  </Button>
-</div>
-
-// Acceptable - dynamic styles
-<div style={{ width: `${progress}%` }}>
-  {/* ... */}
-</div>
-```
+- **Tailwind CSS first** — use utility classes
+- **shadcn/ui components** for consistent UI
+- Use `cn()` from `@/lib/utils` for conditional classes
+- Use semantic design tokens from `index.css` (e.g., `bg-primary`, `text-muted-foreground`)
+- Avoid custom CSS unless absolutely necessary
 
 ---
 
@@ -305,76 +220,28 @@ import './styles.css';
 
 ### Creating a New Component
 
-1. **Create file** in appropriate directory
-   ```bash
-   touch src/components/connectors/ConnectorBadge.tsx
-   ```
+1. Create the file in the appropriate directory
+2. Define a props interface
+3. Implement using shadcn/ui primitives and Tailwind
+4. Export as a named export
 
-2. **Define interface** for props
-   ```typescript
-   interface ConnectorBadgeProps {
-     status: ConnectionStatus;
-     className?: string;
-   }
-   ```
-
-3. **Implement component**
-   ```typescript
-   import { cn } from '@/lib/utils';
-   import { Badge } from '@/components/ui/badge';
-   
-   interface ConnectorBadgeProps {
-     status: ConnectionStatus;
-     className?: string;
-   }
-   
-   export function ConnectorBadge({ status, className }: ConnectorBadgeProps) {
-     const variant = status === 'active' ? 'success' : 'secondary';
-     
-     return (
-       <Badge variant={variant} className={cn('capitalize', className)}>
-         {status}
-       </Badge>
-     );
-   }
-   ```
-
-4. **Export** from barrel file (if applicable)
-   ```typescript
-   // components/connectors/index.ts
-   export { ConnectorCard } from './ConnectorCard';
-   export { ConnectorBadge } from './ConnectorBadge';
-   ```
-
-### Using shadcn/ui Components
-
-Install new components:
-```bash
-npx shadcn@latest add dialog
-npx shadcn@latest add dropdown-menu
-```
-
-This adds the component to `src/components/ui/`.
-
-Usage:
 ```typescript
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
-export function MyComponent() {
+interface StatusBadgeProps {
+  status: 'active' | 'expired' | 'error';
+  className?: string;
+}
+
+export function StatusBadge({ status, className }: StatusBadgeProps) {
   return (
-    <Dialog>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>My Dialog</DialogTitle>
-        </DialogHeader>
-        {/* ... */}
-      </DialogContent>
-    </Dialog>
+    <Badge
+      variant={status === 'active' ? 'default' : 'destructive'}
+      className={cn('capitalize', className)}
+    >
+      {status}
+    </Badge>
   );
 }
 ```
@@ -385,48 +252,14 @@ export function MyComponent() {
 
 ### Context API
 
-Use Context for global state that doesn't change frequently.
+`ConnectorContext` provides global access to connectors, connections, jobs, and events with realtime subscriptions.
 
-**Creating a Context**:
-```typescript
-// context/ThemeContext.tsx
-import React, { createContext, useContext, useState } from 'react';
+### TanStack React Query
 
-interface ThemeContextType {
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
-}
+Used for server state with these defaults:
+- **Stale time**: 5 minutes
+- **GC time**: 30 minutes
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-}
-
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-  return context;
-}
-```
-
-### React Query
-
-Use React Query for server state.
-
-**Fetching data**:
 ```typescript
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -439,31 +272,8 @@ export function useConnectors() {
         .from('connectors')
         .select('*')
         .eq('is_active', true);
-      
       if (error) throw error;
       return data;
-    },
-  });
-}
-```
-
-**Mutations**:
-```typescript
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-export function useConnectConnector() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (connectorId: string) => {
-      const { error } = await supabase
-        .from('user_connections')
-        .insert({ connector_id: connectorId });
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connections'] });
     },
   });
 }
@@ -473,293 +283,148 @@ export function useConnectConnector() {
 
 ## Database Operations
 
-### Querying Data
+### 11 Core Tables
 
-```typescript
-// Simple select
-const { data, error } = await supabase
-  .from('connectors')
-  .select('*');
+| Table | Purpose |
+|-------|---------|
+| `connectors` | Service registry (GitHub, Slack, etc.) |
+| `connector_tools` | Operations available per connector |
+| `user_connections` | Per-user connection state + encrypted tokens |
+| `oauth_transactions` | PKCE state tracking |
+| `pipeline_jobs` | Async job execution records |
+| `pipeline_events` | Streaming execution logs |
+| `action_logs` | Audit trail with latency metrics |
+| `webhooks` | User-defined webhook endpoints |
+| `webhook_deliveries` | Delivery attempts + response tracking |
+| `scheduler_jobs` | Cron job configuration |
+| `notification_preferences` | Per-user notification settings |
 
-// With filter
-const { data } = await supabase
-  .from('connectors')
-  .select('*')
-  .eq('category', 'Development')
-  .order('name');
+### Row-Level Security
 
-// With joins
-const { data } = await supabase
-  .from('user_connections')
-  .select(`
-    *,
-    connector:connectors(*)
-  `)
-  .eq('user_id', userId);
-```
+All tables enforce RLS. Users can only access their own data:
 
-### Inserting Data
-
-```typescript
-const { data, error } = await supabase
-  .from('user_connections')
-  .insert({
-    user_id: user.id,
-    connector_id: connectorId,
-    status: 'active',
-  })
-  .select()
-  .single();
-```
-
-### Updating Data
-
-```typescript
-const { error } = await supabase
-  .from('user_connections')
-  .update({ status: 'revoked' })
-  .eq('id', connectionId);
-```
-
-### Realtime Subscriptions
-
-```typescript
-const channel = supabase
-  .channel('job-updates')
-  .on('postgres_changes', {
-    event: 'UPDATE',
-    schema: 'public',
-    table: 'pipeline_jobs',
-    filter: `user_id=eq.${userId}`,
-  }, (payload) => {
-    console.log('Job updated:', payload.new);
-  })
-  .subscribe();
-
-// Cleanup
-return () => {
-  supabase.removeChannel(channel);
-};
+```sql
+CREATE POLICY "Users can view own connections"
+ON user_connections FOR SELECT
+USING (auth.uid() = user_id);
 ```
 
 ---
 
-## Adding New Connectors
+## Edge Functions
 
-### Step 1: Add to Database
+### Available Functions
 
-```sql
-INSERT INTO connectors (name, slug, description, category, icon_url, auth_type, oauth_config)
-VALUES (
-  'GitHub',
-  'github',
-  'Version control and collaboration platform',
-  'Development',
-  'https://github.com/favicon.ico',
-  'oauth',
-  '{
-    "authUrl": "https://github.com/login/oauth/authorize",
-    "tokenUrl": "https://github.com/login/oauth/access_token",
-    "clientId": "your_client_id"
-  }'::jsonb
-);
-```
+| Function | Purpose | Trigger |
+|----------|---------|---------|
+| `execute-tool` | Run connector tools, manage job lifecycle | User action |
+| `oauth-start` | Generate PKCE challenge + authorization URL | User action |
+| `oauth-callback` | Exchange code for tokens, AES-GCM encrypt | OAuth redirect |
+| `token-refresh` | Renew expired OAuth tokens | pg_cron (5 min) |
+| `health-check` | Monitor connector availability | pg_cron / manual |
+| `send-webhook` | Deliver webhooks with HMAC-SHA256 signatures | Event trigger |
+| `test-webhook` | Send test payload to webhook endpoint | User action |
+| `retry-webhook` | Retry failed webhook deliveries | User action |
+| `send-health-alert` | Email critical health alerts via Resend | Health check |
 
-### Step 2: Add Tools
+### Writing Edge Functions
 
-```sql
-INSERT INTO connector_tools (connector_id, name, description, schema, source)
-VALUES (
-  (SELECT id FROM connectors WHERE slug = 'github'),
-  'create_issue',
-  'Create a new GitHub issue',
-  '{
-    "type": "object",
-    "properties": {
-      "repo": {"type": "string", "description": "Repository name"},
-      "title": {"type": "string"},
-      "body": {"type": "string"}
-    },
-    "required": ["repo", "title"]
-  }'::jsonb,
-  'rest'
-);
-```
+Edge Functions use Deno. Place them in `supabase/functions/<name>/index.ts`:
 
-### Step 3: Implement Tool Execution (Future)
-
-In `src/integrations/connectors/github.ts`:
 ```typescript
-export async function executeGitHubTool(
-  toolName: string,
-  args: Record<string, unknown>,
-  accessToken: string
-) {
-  switch (toolName) {
-    case 'create_issue':
-      return createIssue(args, accessToken);
-    default:
-      throw new Error(`Unknown tool: ${toolName}`);
-  }
-}
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-async function createIssue(
-  args: Record<string, unknown>,
-  accessToken: string
-) {
-  const response = await fetch(
-    `https://api.github.com/repos/${args.repo}/issues`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: args.title,
-        body: args.body,
-      }),
-    }
-  );
-  
-  return response.json();
-}
-```
-
----
-
-## Testing
-
-### Running Tests
-
-```bash
-# Unit tests (future)
-npm run test
-
-# E2E tests (future)
-npm run test:e2e
-
-# Coverage (future)
-npm run test:coverage
-```
-
-### Writing Tests
-
-**Component Test**:
-```typescript
-import { render, screen } from '@testing-library/react';
-import { ConnectorCard } from './ConnectorCard';
-
-describe('ConnectorCard', () => {
-  it('renders connector name', () => {
-    const connector = {
-      id: '1',
-      name: 'GitHub',
-      slug: 'github',
-      // ...
-    };
-    
-    render(<ConnectorCard connector={connector} />);
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
+serve(async (req) => {
+  const { tool_name, arguments: args } = await req.json();
+  // ... implementation
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { "Content-Type": "application/json" },
   });
 });
 ```
 
 ---
 
+## Testing
+
+### Framework
+
+- **Vitest** for unit tests
+- **React Testing Library** for component tests
+- **jsdom** environment
+
+### Running Tests
+
+```bash
+npm run test          # Run all tests
+npx vitest run        # Single run
+npx vitest --coverage # With coverage
+```
+
+### Test File Locations
+
+- `src/hooks/__tests__/useConnectorData.test.ts`
+- `src/lib/__tests__/formatters.test.ts`
+- `src/lib/__tests__/validation.test.ts`
+
+### CI Pipeline
+
+GitHub Actions runs on every PR:
+1. ESLint linting
+2. TypeScript type checking
+3. Security audit (`npm audit`)
+4. Vitest test suite
+5. Production build validation
+6. Lighthouse performance audit
+
+---
+
 ## Debugging
 
-### Browser DevTools
+### Console Logging
 
-- **React DevTools**: Inspect component tree and props
-- **Network Tab**: Monitor API requests to Supabase
-- **Console**: Check for errors and warnings
-
-### Supabase Logs
-
-- Go to Supabase Dashboard → Logs
-- Filter by severity and table
-- Check RLS policy violations
+Use structured log prefixes:
+```typescript
+console.error('[useConnectorData]', error);
+console.warn('[TokenRefresh]', 'Token expires in 5 minutes');
+```
 
 ### Common Issues
 
-**RLS Policy Blocking Query**:
-```
-Error: new row violates row-level security policy
-```
-Solution: Check RLS policies in `supabase/migrations/*.sql`
-
-**Missing Environment Variables**:
-```
-Error: supabaseUrl is required
-```
-Solution: Ensure `.env` file exists with correct values
+| Problem | Solution |
+|---------|----------|
+| Blank page after deploy | Check `.env` variables are set |
+| RLS policy errors | Verify `auth.uid()` matches `user_id` column |
+| Realtime not updating | Ensure table has `ALTER PUBLICATION supabase_realtime ADD TABLE` |
+| Edge Function 500 | Check function logs in Supabase dashboard |
+| OAuth callback fails | Verify redirect URI matches Supabase auth config |
 
 ---
 
 ## Common Tasks
 
-### Regenerating TypeScript Types
+### Add a New Connector
 
-After schema changes:
-```bash
-supabase gen types typescript --local > src/integrations/supabase/types.ts
-```
+1. Insert a row into `connectors` table
+2. Add tools to `connector_tools` with JSON schemas
+3. Configure OAuth if needed (`oauth_config`, `oauth_scopes`)
 
-### Adding a New Route
+### Add a New Page
 
-1. Create page component in `src/pages/`
-2. Add route in `src/App.tsx`:
+1. Create `src/pages/MyPage.tsx`
+2. Add lazy import in `App.tsx`:
    ```typescript
-   <Route path="/new-page" element={<NewPage />} />
+   const MyPage = lazy(() => import('./pages/MyPage'));
    ```
+3. Add route in the router config
+4. Add navigation link in `Layout.tsx`
 
-### Updating Database Schema
+### Add a New Edge Function
 
-1. Create new migration file:
-   ```bash
-   supabase migration new add_feature_x
-   ```
-
-2. Write SQL in generated file
-
-3. Apply migration:
-   ```bash
-   supabase db push
-   ```
+1. Create `supabase/functions/my-function/index.ts`
+2. Add `deno.json` if needed for import maps
+3. Deploy: functions deploy automatically on push
 
 ---
 
-## Troubleshooting
-
-### Build Failures
-
-```bash
-# Clear cache
-rm -rf node_modules .vite
-npm install
-npm run dev
-```
-
-### Type Errors
-
-```bash
-# Regenerate types
-supabase gen types typescript --local > src/integrations/supabase/types.ts
-```
-
-### Authentication Issues
-
-- Check Supabase Auth settings
-- Verify email templates are enabled
-- Check redirect URLs match
-
----
-
-## Resources
-
-- [React Documentation](https://react.dev)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [Supabase Documentation](https://supabase.com/docs)
-- [Tailwind CSS](https://tailwindcss.com/docs)
-- [shadcn/ui](https://ui.shadcn.com/)
+**Last Updated**: February 2026
