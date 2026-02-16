@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { CONNECTOR_CATEGORIES } from '@/types/seed-data';
 import { useState } from 'react';
-import { Search, Grid3X3, List, Shield, Plus } from 'lucide-react';
+import { Search, Grid3X3, List, Shield, Plus, Server } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ConnectorsPage() {
@@ -232,8 +232,24 @@ export default function ConnectorsPage() {
         )}
         
         {filteredConnectors.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">No connectors found matching your criteria.</p>
+          <div className="text-center py-16 space-y-4">
+            {category === 'mcp' ? (
+              <>
+                <Server className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+                <h3 className="text-lg font-semibold text-foreground">No MCP servers registered yet</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Register your first MCP-compatible server to discover its tools and make them available to your team.
+                </p>
+                <Button asChild variant="glow" className="gap-2 mt-2">
+                  <Link to="/connectors/add-mcp">
+                    <Plus className="h-4 w-4" />
+                    Register MCP Server
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <p className="text-muted-foreground">No connectors found matching your criteria.</p>
+            )}
           </div>
         )}
       </div>
