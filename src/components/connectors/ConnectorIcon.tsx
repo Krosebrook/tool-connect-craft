@@ -8,7 +8,8 @@ import {
   Table2, 
   Triangle, 
   Puzzle,
-  Globe
+  Globe,
+  Server
 } from 'lucide-react';
 
 interface ConnectorIconProps {
@@ -40,8 +41,9 @@ const colorMap: Record<string, string> = {
 };
 
 export function ConnectorIcon({ slug, name, className }: ConnectorIconProps) {
-  const Icon = iconMap[slug] || Globe;
-  const colors = colorMap[slug] || 'text-muted-foreground bg-muted';
+  const isMcp = !iconMap[slug] && slug !== 'custom-mcp';
+  const Icon = iconMap[slug] || (isMcp ? Server : Globe);
+  const colors = colorMap[slug] || (isMcp ? 'text-primary bg-primary/10' : 'text-muted-foreground bg-muted');
   
   return (
     <div 
