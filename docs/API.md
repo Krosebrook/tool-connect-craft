@@ -1,93 +1,267 @@
 # API Reference
 
-This document provides a comprehensive reference for the Tool Connect Craft frontend API, including React hooks, context providers, and utility functions.
+Complete reference for Edge Functions, React hooks, and database schema.
 
 ---
 
 ## Table of Contents
 
-- [Context APIs](#context-apis)
-  - [AuthContext](#authcontext)
-  - [ConnectorContext](#connectorcontext)
-- [Custom Hooks](#custom-hooks)
-  - [useAuth](#useauth)
-  - [useConnectors](#useconnectors)
-  - [useConnectorData](#useconnectordata)
-  - [useToast](#usetoast)
-- [Configuration](#configuration)
-- [Types](#types)
+- [Edge Functions](#edge-functions)
+  - [execute-tool](#execute-tool)
+  - [oauth-start](#oauth-start)
+  - [oauth-callback](#oauth-callback)
+  - [token-refresh](#token-refresh)
+  - [health-check](#health-check)
+  - [send-health-alert](#send-health-alert)
+  - [send-webhook](#send-webhook)
+  - [test-webhook](#test-webhook)
+  - [retry-webhook](#retry-webhook)
+- [React Context & Hooks](#react-context--hooks)
+- [Database Schema](#database-schema)
+- [Type Reference](#type-reference)
 
 ---
 
-## Context APIs
+## Edge Functions
 
-### AuthContext
+All functions accept `OPTIONS` for CORS preflight and return JSON with `Content-Type: application/json`.
 
-Authentication context that manages user session state and provides authentication methods.
+### execute-tool
 
-**Provider**: `<AuthProvider>`
+Validates arguments against tool JSON Schema, dispatches to MCP server or REST adapter, and records audit logs.
 
-**Location**: `src/context/AuthContext.tsx`
+**Method:** `POST`
 
-#### Properties
-
-```typescript
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
+**Request:**
+```json
+{
+  "jobId": "uuid",
+  "connectorId": "uuid",
+  "toolName": "send_email",
+  "args": { "to": "user@example.com", "subject": "Hello" },
+  "userId": "uuid"
 }
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `user` | `User \| null` | Current authenticated user or null |
-| `session` | `Session \| null` | Current session object or null |
-| `loading` | `boolean` | True while checking authentication status |
-| `signIn` | Function | Sign in with email and password |
-| `signUp` | Function | Create new account |
-| `signOut` | Function | Sign out current user |
+**Responses:**
 
-#### Example Usage
+| Status | Description |
+|---|---|
+| 200 | `{ success: true, result: {...}, latencyMs: 1234 }` |
+| 400 | Missing fields or validation errors |
+| 404 | Connector or tool not found |
+| 429 | Rate limit exceeded (includes `Retry-After` header) |
+| 500 | Execution failure |
 
-```typescript
-import { useAuth } from '@/context/AuthContext';
+**Rate Limit Headers:**
+- `X-RateLimit-Limit-User` / `X-RateLimit-Remaining-User` / `X-RateLimit-Reset-User`
+- `X-RateLimit-Limit-Connector` / `X-RateLimit-Remaining-Connector` / `X-RateLimit-Reset-Connector`
 
-function MyComponent() {
-  const { user, signIn, signOut, loading } = useAuth();
+---
 
-  if (loading) return <div>Loading...</div>;
+### oauth-start
 
-  if (!user) {
-    return <button onClick={() => signIn('email@example.com', 'password')}>
-      Sign In
-    </button>;
-  }
+Generates PKCE code verifier/challenge, creates an `oauth_transactions` record, and returns the provider's authorization URL.
 
-  return (
-    <div>
-      <p>Welcome, {user.email}</p>
-      <button onClick={signOut}>Sign Out</button>
-    </div>
-  );
+**Method:** `POST`
+
+**Request:**
+```json
+{
+  "connectorId": "uuid",
+  "userId": "uuid",
+  "redirectUri": "https://example.com/callback"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth?...",
+  "state": "hex-string",
+  "codeVerifier": "base64url-string"
+}
+```
+
+**Supported providers:** `google`, `github`, `slack`
+
+---
+
+### oauth-callback
+
+Verifies state and code verifier hash, exchanges authorization code for tokens, encrypts tokens with AES-GCM, and upserts the `user_connections` record.
+
+**Method:** `POST`
+
+**Request:**
+```json
+{
+  "code": "authorization-code",
+  "state": "hex-string",
+  "codeVerifier": "base64url-string"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "OAuth connection established",
+  "connectorId": "uuid",
+  "connectorName": "GitHub",
+  "scopes": ["repo", "read:user"]
 }
 ```
 
 ---
+
+### token-refresh
+
+Refreshes expiring OAuth tokens. Can target a specific connection or batch-refresh all connections expiring within 5 minutes.
+
+**Method:** `POST`
+
+**Request (optional body):**
+```json
+{
+  "connectionId": "uuid",
+  "force": false
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "refreshed": 2,
+  "failed": 0,
+  "results": [
+    { "connectionId": "uuid", "connectorName": "Google", "success": true, "expiresAt": "..." }
+  ]
+}
+```
+
+---
+
+### health-check
+
+Runs parallel connectivity checks against all active connectors (or a specific one). Tests MCP server reachability via `initialize` JSON-RPC call and REST API endpoints with GET requests.
+
+**Method:** `GET`
+
+**Query params:** `?connectorId=uuid` (optional)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "summary": { "total": 8, "healthy": 6, "degraded": 1, "unhealthy": 1 },
+  "results": [
+    {
+      "connectorId": "uuid",
+      "connectorName": "GitHub",
+      "status": "healthy",
+      "mcpServer": { "configured": false, "reachable": false, "latencyMs": null, "error": null },
+      "restApi": { "configured": true, "reachable": true, "latencyMs": 142, "error": null },
+      "checkedAt": "2026-02-16T..."
+    }
+  ]
+}
+```
+
+---
+
+### send-health-alert
+
+Sends HTML email alerts via Resend for unhealthy/degraded connectors. Includes a 15-minute per-connector cooldown to prevent alert spam.
+
+**Method:** `POST`
+
+**Request:**
+```json
+{
+  "connectorName": "GitHub",
+  "connectorSlug": "github",
+  "status": "unhealthy",
+  "error": "Connection timeout (10s)",
+  "latencyMs": 10023,
+  "timestamp": "2026-02-16T...",
+  "recipientEmail": "admin@example.com"
+}
+```
+
+**Requires:** `RESEND_API_KEY` environment variable.
+
+---
+
+### send-webhook
+
+Dispatches event payloads to all active webhooks subscribed to the event type. Supports custom payload templates with `{{variable}}` substitution.
+
+**Method:** `POST`
+
+**Request:**
+```json
+{
+  "event": "connection.active",
+  "connectionId": "uuid",
+  "connectorId": "uuid",
+  "userId": "uuid",
+  "status": "active",
+  "previousStatus": "pending"
+}
+```
+
+**Template variables:** `event`, `timestamp`, `connectionId`, `connectorId`, `connectorName`, `connectorSlug`, `userId`, `status`, `previousStatus`
+
+**Webhook delivery headers:**
+- `Content-Type: application/json`
+- `User-Agent: Lovable-Webhooks/1.0`
+- `X-Webhook-Attempt: 1`
+- `X-Webhook-Signature: sha256=...` (if secret configured)
+
+---
+
+### test-webhook
+
+Sends a single test payload to a webhook URL. Returns the response status and body.
+
+**Method:** `POST`
+
+**Request:**
+```json
+{
+  "url": "https://example.com/webhook",
+  "secret": "optional-hmac-secret",
+  "payload": { "test": true }
+}
+```
+
+---
+
+### retry-webhook
+
+Re-delivers a previously failed webhook delivery with fresh retry logic (3 attempts, exponential backoff).
+
+**Method:** `POST`
+
+**Request:**
+```json
+{ "deliveryId": "uuid" }
+```
+
+---
+
+## React Context & Hooks
 
 ### ConnectorContext
 
-Manages connector catalog, user connections, jobs, and provides methods for connector operations.
+**Provider:** `<ConnectorProvider>` — wraps app in `App.tsx`
 
-**Provider**: `<ConnectorProvider>`
+**Hook:** `useConnectors()` — throws if used outside provider
 
-**Location**: `src/context/ConnectorContext.tsx`
-
-#### Properties
-
+**Shape:**
 ```typescript
 interface ConnectorContextType {
   connectors: DbConnector[];
@@ -97,499 +271,137 @@ interface ConnectorContextType {
   events: Map<string, DbPipelineEvent[]>;
   logs: DbActionLog[];
   loading: boolean;
-  
-  getConnectorWithConnection: (slug: string) => ConnectorWithConnection | undefined;
-  getToolsForConnector: (connectorId: string) => DbConnectorTool[];
-  connect: (connectorId: string) => Promise<void>;
-  disconnect: (connectionId: string) => Promise<void>;
-  executeTool: (connectorSlug: string, toolName: string, args: Record<string, unknown>) => Promise<DbPipelineJob>;
-  fetchEventsForJob: (jobId: string) => Promise<void>;
+
+  getConnectorWithConnection(slug: string): ConnectorWithConnection | undefined;
+  getToolsForConnector(connectorId: string): DbConnectorTool[];
+  connect(connectorId: string): Promise<void>;
+  disconnect(connectionId: string): Promise<void>;
+  executeTool(connectorSlug: string, toolName: string, args: Record<string, unknown>): Promise<DbPipelineJob>;
+  fetchEventsForJob(jobId: string): Promise<void>;
 }
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `connectors` | `DbConnector[]` | List of all available connectors |
-| `tools` | `Map<string, DbConnectorTool[]>` | Tools mapped by connector ID |
-| `connections` | `DbUserConnection[]` | User's active connections |
-| `jobs` | `DbPipelineJob[]` | User's pipeline jobs |
-| `events` | `Map<string, DbPipelineEvent[]>` | Events mapped by job ID |
-| `logs` | `DbActionLog[]` | User's action logs |
-| `loading` | `boolean` | True while loading initial data |
+### Key Hooks
 
-#### Methods
-
-**`getConnectorWithConnection(slug: string)`**
-
-Get a connector with its connection status and tools.
-
-```typescript
-const connector = getConnectorWithConnection('github');
-// Returns: { ...connector, connection?, tools[] }
-```
-
-**`connect(connectorId: string)`**
-
-Initiate connection to a service.
-
-```typescript
-await connect('conn-github');
-// Triggers OAuth flow or connection creation
-```
-
-**`disconnect(connectionId: string)`**
-
-Revoke a connection.
-
-```typescript
-await disconnect(connection.id);
-// Sets connection status to 'revoked'
-```
-
-**`executeTool(connectorSlug, toolName, args)`**
-
-Execute a tool on a connector.
-
-```typescript
-const job = await executeTool('github', 'list_repositories', {
-  visibility: 'public',
-  per_page: 10
-});
-// Returns created job, updates stream via WebSocket
-```
-
-#### Example Usage
-
-```typescript
-import { useConnectors } from '@/context/ConnectorContext';
-
-function ConnectorList() {
-  const { connectors, connections, connect, loading } = useConnectors();
-
-  if (loading) return <div>Loading...</div>;
-
-  return (
-    <div>
-      {connectors.map(connector => {
-        const connection = connections.find(c => c.connector_id === connector.id);
-        const isConnected = connection?.status === 'active';
-
-        return (
-          <div key={connector.id}>
-            <h3>{connector.name}</h3>
-            <p>{connector.description}</p>
-            {isConnected ? (
-              <span>Connected</span>
-            ) : (
-              <button onClick={() => connect(connector.id)}>Connect</button>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-```
+| Hook | Location | Purpose |
+|---|---|---|
+| `useConnectorData` | `src/hooks/useConnectorData.ts` | Core data fetching + Realtime subscriptions |
+| `useOAuthFlow` | `src/hooks/useOAuthFlow.ts` | OAuth PKCE flow orchestration |
+| `useHealthAlerts` | `src/hooks/useHealthAlerts.ts` | Health check trigger + alert dispatch |
+| `useHealthNotifications` | `src/hooks/useHealthNotifications.ts` | Push notification logic |
+| `useKeyboardShortcuts` | `src/hooks/useKeyboardShortcuts.ts` | Global keyboard shortcuts |
+| `useLocalStorage` | `src/hooks/useLocalStorage.ts` | Type-safe localStorage wrapper |
 
 ---
 
-## Custom Hooks
+## Database Schema
 
-### useAuth
+### Tables
 
-Hook to access authentication context. Wrapper around `useContext(AuthContext)`.
+#### connectors
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | auto-generated |
+| `name` | text | required |
+| `slug` | text | unique |
+| `description` | text | nullable |
+| `category` | text | nullable |
+| `icon_url` | text | nullable |
+| `auth_type` | enum `auth_type` | default `none` |
+| `oauth_provider` | text | nullable |
+| `oauth_scopes` | text[] | nullable |
+| `oauth_config` | jsonb | nullable (authUrl, tokenUrl, clientId) |
+| `mcp_server_url` | text | nullable |
+| `is_active` | boolean | default true |
+| `created_at` | timestamptz | auto |
 
-**Location**: `src/context/AuthContext.tsx`
+#### connector_tools
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `connector_id` | uuid FK → connectors | |
+| `name` | text | |
+| `description` | text | nullable |
+| `schema` | jsonb | JSON Schema for args |
+| `source` | enum `tool_source` | `mcp` or `rest` |
+| `created_at` | timestamptz | |
 
-**Usage**: See [AuthContext](#authcontext)
+#### user_connections
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `user_id` | uuid | |
+| `connector_id` | uuid FK → connectors | |
+| `status` | enum `connection_status` | |
+| `secret_ref_access` | text | AES-GCM encrypted |
+| `secret_ref_refresh` | text | AES-GCM encrypted |
+| `expires_at` | timestamptz | nullable |
+| `scopes` | text[] | nullable |
+| `last_used_at` | timestamptz | nullable |
+| `created_at` / `updated_at` | timestamptz | |
 
-**Throws**: Error if used outside `<AuthProvider>`
+#### pipeline_jobs
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `user_id` | uuid | |
+| `connector_id` | uuid FK → connectors | |
+| `type` | text | e.g. `tool_execution` |
+| `status` | enum `job_status` | |
+| `input` / `output` | jsonb | nullable |
+| `error` | text | nullable |
+| `started_at` / `finished_at` | timestamptz | nullable |
+| `created_at` | timestamptz | |
+
+#### webhooks
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `user_id` | uuid | |
+| `name` | text | |
+| `url` | text | |
+| `events` | text[] | e.g. `['connection.active']` |
+| `secret` | text | nullable, for HMAC |
+| `is_active` | boolean | |
+| `payload_template` | jsonb | nullable, custom template |
+| `created_at` / `updated_at` | timestamptz | |
+
+#### webhook_deliveries
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `webhook_id` | uuid FK → webhooks | |
+| `event_type` | text | |
+| `payload` | jsonb | |
+| `status` | text | `pending`, `delivered`, `failed` |
+| `response_code` | int | nullable |
+| `response_body` | text | nullable |
+| `attempts` | int | |
+| `delivered_at` | timestamptz | nullable |
+| `created_at` | timestamptz | |
+
+See `src/integrations/supabase/types.ts` for the complete auto-generated TypeScript types.
 
 ---
 
-### useConnectors
+## Type Reference
 
-Hook to access connector context. Wrapper around `useContext(ConnectorContext)`.
-
-**Location**: `src/context/ConnectorContext.tsx`
-
-**Usage**: See [ConnectorContext](#connectorcontext)
-
-**Throws**: Error if used outside `<ConnectorProvider>`
-
----
-
-### useConnectorData
-
-Internal hook that manages connector data fetching and real-time subscriptions.
-
-**Location**: `src/hooks/useConnectorData.ts`
-
-**Note**: This hook is used internally by `ConnectorProvider`. Use `useConnectors()` instead.
-
----
-
-### useToast
-
-Hook to show toast notifications.
-
-**Location**: `src/hooks/use-toast.ts`
-
-**Usage**:
+### Domain Types (`src/types/connector.ts`)
 
 ```typescript
-import { useToast } from '@/hooks/use-toast';
-
-function MyComponent() {
-  const { toast } = useToast();
-
-  const showSuccess = () => {
-    toast({
-      title: 'Success',
-      description: 'Operation completed successfully',
-    });
-  };
-
-  const showError = () => {
-    toast({
-      title: 'Error',
-      description: 'Something went wrong',
-      variant: 'destructive',
-    });
-  };
-
-  return (
-    <div>
-      <button onClick={showSuccess}>Show Success</button>
-      <button onClick={showError}>Show Error</button>
-    </div>
-  );
-}
-```
-
----
-
-## Configuration
-
-Centralized configuration module for environment variables and app settings.
-
-**Location**: `src/lib/config.ts`
-
-### Exports
-
-```typescript
-// Supabase configuration
-export const supabaseConfig: {
-  url: string;
-  publishableKey: string;
-  projectId: string;
-};
-
-// Application configuration
-export const appConfig: {
-  name: string;
-  version: string;
-  isDevelopment: boolean;
-  isProduction: boolean;
-  features: { ... };
-  ui: { ... };
-  api: { ... };
-  jobs: { ... };
-};
-
-// Constants
-export const CONNECTOR_CATEGORIES;
-export const CONNECTION_STATUS_LABELS;
-export const JOB_STATUS_LABELS;
-export const EVENT_LEVEL_LABELS;
-export const ROUTES;
-```
-
-### Example Usage
-
-```typescript
-import { appConfig, ROUTES } from '@/lib/config';
-
-// Check feature flags
-if (appConfig.features.enableOAuth) {
-  // OAuth is enabled
-}
-
-// Use route constants
-navigate(ROUTES.dashboard);
-navigate(ROUTES.connectorDetail('github'));
-
-// Access environment
-if (appConfig.isDevelopment) {
-  console.log('Dev mode');
-}
-```
-
----
-
-## Types
-
-Core TypeScript types used throughout the application.
-
-**Location**: `src/types/connector.ts`
-
-### Connector Types
-
-```typescript
-// Authentication types
 type AuthType = 'oauth' | 'api_key' | 'none';
 type ToolSource = 'mcp' | 'rest';
-
-// Status types
 type ConnectionStatus = 'pending' | 'active' | 'expired' | 'revoked' | 'error';
 type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
 type EventLevel = 'info' | 'warn' | 'error';
 type OAuthTransactionStatus = 'started' | 'completed' | 'failed';
 ```
 
-### Data Models
+### Configuration (`src/lib/config.ts`)
 
 ```typescript
-interface Connector {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  category: string;
-  iconUrl: string;
-  authType: AuthType;
-  oauthProvider?: string;
-  oauthScopes?: string[];
-  oauthConfig?: OAuthConfig;
-  mcpServerUrl?: string;
-  isActive: boolean;
-  createdAt: string;
-}
+import { appConfig, ROUTES, CONNECTOR_CATEGORIES } from '@/lib/config';
 
-interface ConnectorTool {
-  id: string;
-  connectorId: string;
-  name: string;
-  description: string;
-  schema: ToolSchema;
-  source: ToolSource;
-  createdAt: string;
-}
-
-interface UserConnection {
-  id: string;
-  userId: string;
-  connectorId: string;
-  status: ConnectionStatus;
-  secretRefAccess?: string;
-  secretRefRefresh?: string;
-  expiresAt?: string;
-  scopes?: string[];
-  lastUsedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PipelineJob {
-  id: string;
-  userId: string;
-  connectorId: string;
-  toolName: string;
-  type: string;
-  status: JobStatus;
-  input: Record<string, unknown>;
-  output?: Record<string, unknown>;
-  error?: string;
-  startedAt?: string;
-  finishedAt?: string;
-  createdAt: string;
-}
-
-interface PipelineEvent {
-  id: string;
-  jobId: string;
-  ts: string;
-  level: EventLevel;
-  message: string;
-  data?: Record<string, unknown>;
-}
-
-interface ActionLog {
-  id: string;
-  userId: string;
-  connectorId: string;
-  toolName: string;
-  request: Record<string, unknown>;
-  response?: Record<string, unknown>;
-  status: 'success' | 'error';
-  error?: string;
-  latencyMs: number;
-  createdAt: string;
-}
+appConfig.features.enableOAuth  // boolean
+ROUTES.connectorDetail('github') // '/connectors/github'
 ```
-
----
-
-## Supabase Client
-
-Access to the Supabase client instance.
-
-**Location**: `src/integrations/supabase/client.ts`
-
-### Usage
-
-```typescript
-import { supabase } from '@/integrations/supabase/client';
-
-// Query data
-const { data, error } = await supabase
-  .from('connectors')
-  .select('*')
-  .eq('is_active', true);
-
-// Subscribe to changes
-const channel = supabase
-  .channel('jobs-changes')
-  .on('postgres_changes', {
-    event: 'INSERT',
-    schema: 'public',
-    table: 'pipeline_jobs',
-  }, (payload) => {
-    console.log('New job:', payload.new);
-  })
-  .subscribe();
-
-// Cleanup
-channel.unsubscribe();
-```
-
----
-
-## Error Handling
-
-### ErrorBoundary Component
-
-React Error Boundary for catching and displaying errors.
-
-**Location**: `src/components/ErrorBoundary.tsx`
-
-```typescript
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-function App() {
-  return (
-    <ErrorBoundary>
-      <MyComponent />
-    </ErrorBoundary>
-  );
-}
-
-// With custom fallback
-<ErrorBoundary fallback={<div>Custom error UI</div>}>
-  <MyComponent />
-</ErrorBoundary>
-```
-
----
-
-## Utilities
-
-### cn (Class Name Utility)
-
-Utility for merging class names with Tailwind CSS.
-
-**Location**: `src/lib/utils.ts`
-
-```typescript
-import { cn } from '@/lib/utils';
-
-<div className={cn(
-  'base-class',
-  condition && 'conditional-class',
-  'another-class'
-)} />
-```
-
----
-
-## Best Practices
-
-1. **Always use hooks inside functional components**
-   ```typescript
-   // ✅ Good
-   function MyComponent() {
-     const { user } = useAuth();
-   }
-
-   // ❌ Bad
-   const user = useAuth().user; // Outside component
-   ```
-
-2. **Check loading states before rendering**
-   ```typescript
-   const { user, loading } = useAuth();
-   if (loading) return <Spinner />;
-   ```
-
-3. **Handle errors gracefully**
-   ```typescript
-   try {
-     await connect(connectorId);
-   } catch (error) {
-     toast({
-       title: 'Connection Failed',
-       description: error.message,
-       variant: 'destructive',
-     });
-   }
-   ```
-
-4. **Use TypeScript types**
-   ```typescript
-   import type { Connector } from '@/types/connector';
-   
-   function ConnectorCard({ connector }: { connector: Connector }) {
-     // ...
-   }
-   ```
-
-5. **Unsubscribe from real-time channels**
-   ```typescript
-   useEffect(() => {
-     const channel = supabase.channel('my-channel').subscribe();
-     
-     return () => {
-       channel.unsubscribe();
-     };
-   }, []);
-   ```
-
----
-
-## Testing
-
-Example tests for components using the API:
-
-```typescript
-import { render, screen, waitFor } from '@testing-library/react';
-import { AuthProvider } from '@/context/AuthContext';
-import MyComponent from './MyComponent';
-
-describe('MyComponent', () => {
-  it('renders user data when authenticated', async () => {
-    render(
-      <AuthProvider>
-        <MyComponent />
-      </AuthProvider>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText(/welcome/i)).toBeInTheDocument();
-    });
-  });
-});
-```
-
----
-
-For more examples, see the source code and [CONTRIBUTING.md](../CONTRIBUTING.md).
