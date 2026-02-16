@@ -35,6 +35,7 @@
 |----------|-------------|
 | [SECURITY.md](SECURITY.md) | RLS policies, OAuth PKCE, AES-GCM token encryption, rate limiting, and incident response |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Production checklist, required secrets inventory, environment configuration, and troubleshooting |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Comprehensive FAQ with common errors, debugging steps, and solutions for every component |
 
 ## Development
 
@@ -48,6 +49,7 @@
 ## Quick Links
 
 - **New to the project?** Start with [README.md](../README.md) → [ARCHITECTURE.md](ARCHITECTURE.md) → [DEVELOPMENT.md](DEVELOPMENT.md)
-- **Deploying?** Follow [DEPLOYMENT.md](DEPLOYMENT.md) → [SECURITY.md](SECURITY.md)
+- **Deploying?** Follow [DEPLOYMENT.md](DEPLOYMENT.md) → [SECURITY.md](SECURITY.md) → [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 - **Building integrations?** Read [API.md](API.md) → [EDGE_FUNCTIONS.md](EDGE_FUNCTIONS.md) → [WEBHOOKS.md](WEBHOOKS.md)
+- **Something broken?** Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) → [DEPLOYMENT.md](DEPLOYMENT.md)
 - **Contributing?** See [CONTRIBUTING.md](CONTRIBUTING.md) → [CODE_ANALYSIS.md](CODE_ANALYSIS.md)
