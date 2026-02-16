@@ -10,7 +10,8 @@ import {
   X,
   Clock,
   Webhook,
-  Bell
+  Bell,
+  Server
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/webhooks', label: 'Webhooks', icon: Webhook, tooltip: 'Configure webhook endpoints for event notifications' },
   { href: '/settings/notifications', label: 'Notifications', icon: Bell, tooltip: 'Set email, push, and webhook alert preferences' },
   { href: '/settings/security', label: 'Security', icon: Shield, tooltip: 'Token management, session security, and privacy' },
+  { href: '/settings/mcp-endpoint', label: 'MCP Endpoint', icon: Server, tooltip: 'Connect your AI assistants via a single MCP URL' },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
