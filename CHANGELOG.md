@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 📚 Documentation
+- Added `docs/WEBHOOKS.md` — webhook setup, payload template syntax (`{{variable}}`), HMAC-SHA256 verification examples (Node/Python/Go/Ruby), delivery lifecycle, and debugging tips
+- Added `docs/TROUBLESHOOTING.md` — comprehensive FAQ covering OAuth/PKCE, webhook delivery, tool execution, Edge Functions, RLS, token management, scheduler, UI, and environment configuration with diagnostic SQL snippets
+- Added `docs/SUMMARY.md` — master documentation index with categorized links and persona-based quick-start reading paths
+
 ### ✨ Features
 
 **Webhook System**
