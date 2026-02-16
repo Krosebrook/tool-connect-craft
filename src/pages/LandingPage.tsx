@@ -56,14 +56,14 @@ export default function LandingPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="glow" size="xl" asChild>
-                    <Link to="/connectors" className="gap-2">
-                      Browse Connectors
+                    <Link to="/guide" className="gap-2">
+                      Get Started
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Explore available integrations and connect via OAuth or API keys</p>
+                  <p>Follow our step-by-step guide to connect your first service</p>
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -161,14 +161,14 @@ export default function LandingPage() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="glow" size="xl" asChild>
-                <Link to="/connectors" className="gap-2">
+                <Link to="/guide" className="gap-2">
                   Get Started
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Browse connectors and set up your first integration</p>
+              <p>Follow our step-by-step guide to connect your first service</p>
             </TooltipContent>
           </Tooltip>
         </div>
