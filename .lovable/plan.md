@@ -1,96 +1,106 @@
 
 
-## Plan: Add MCP Server Registration and Multi-User Connectivity
+# Build an MCP Server Endpoint (MCP Proxy)
 
-### What This Adds
-A complete self-service flow for any employee/user to register an MCP server, auto-discover its tools, and make it available across the team.
+## Goal
+Create a backend function that acts as an MCP-compliant server. When a user's AI assistant (Claude, ChatGPT, Copilot, etc.) connects to this endpoint, it sees all the tools from that user's connected services -- and can call them through a single URL.
 
----
+## How It Works
 
-### Step 1: Add MCP Registration Page (`/connectors/add-mcp`)
-
-Create a new page with a form where users can:
-- Enter a **name** and **description** for their MCP server
-- Provide the **MCP Server URL** (the HTTP endpoint)
-- Select an **auth method** (none, API key, or bearer token)
-- Optionally provide an **API key** for authenticated MCP servers
-- Click "Discover Tools" to auto-detect available tools from the server
-- Review discovered tools and confirm registration
-
-The form saves a new row to the `connectors` table with `auth_type` set appropriately and `mcp_server_url` populated.
-
-### Step 2: Create `discover-mcp-tools` Edge Function
-
-A new backend function that:
-- Accepts an MCP server URL (and optional auth credentials)
-- Sends the standard MCP JSON-RPC request: `{"method": "tools/list"}` to the server
-- Parses the response to extract tool names, descriptions, and input schemas
-- Returns the discovered tools to the frontend for preview
-- On confirmation, inserts rows into `connector_tools` with `source = 'mcp'`
-
-This follows the Model Context Protocol spec for tool discovery.
-
-### Step 3: Add "Register MCP" Button to Connectors Page
-
-Update `ConnectorsPage.tsx` to include:
-- A prominent "Add MCP Server" button in the header area
-- Links to the new `/connectors/add-mcp` route
-- A tooltip explaining: "Register any MCP-compatible server to discover and use its tools"
-
-### Step 4: Add Route to App.tsx
-
-Register the new lazy-loaded page:
-```text
-/connectors/add-mcp --> AddMCPPage
+The user gets a personal MCP URL like:
+```
+https://<project-url>/functions/v1/mcp-server
 ```
 
-### Step 5: Update ConnectorDetailPage for MCP-Specific Info
+They paste this URL into their AI client (e.g., Claude Desktop config). The AI client sends standard MCP JSON-RPC requests, and this endpoint:
+1. Authenticates the user (via Bearer token)
+2. Lists all tools from their active connections
+3. Proxies `tools/call` requests to the appropriate upstream MCP server or REST handler
 
-When viewing an MCP connector's detail page, show:
-- The MCP Server URL (masked if authenticated)
-- A "Re-discover Tools" button to refresh the tool list
-- Connection health status (can the server be reached)
-- A "Share with Team" option that makes it visible to all users
+## What Gets Built
 
-### Step 6: Multi-User Access
+### 1. New Database Table: `mcp_api_keys`
+Stores per-user API keys for authenticating external AI clients:
 
-The existing `user_connections` table already supports per-user connections. Each employee:
-1. Sees available MCP connectors on the Connectors page
-2. Clicks "Connect" to create their own `user_connection` record
-3. Can then execute tools through the connector using their own connection
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| user_id | uuid | Owner |
+| name | text | Label (e.g. "Claude Desktop") |
+| key_hash | text | SHA-256 hash of the API key |
+| key_prefix | text | First 8 chars for display (e.g. `mcp_a1b2...`) |
+| last_used_at | timestamptz | Tracking |
+| created_at | timestamptz | Audit |
 
-No additional database changes needed -- the current schema handles this.
+RLS: users can only read/manage their own keys.
 
----
+### 2. New Edge Function: `mcp-server`
+A Streamable HTTP MCP server using `mcp-lite` that handles three JSON-RPC methods:
 
-### Technical Details
+- **`initialize`** -- Returns server info and capabilities
+- **`tools/list`** -- Queries the user's active connections, joins to `connector_tools`, and returns a merged list with namespaced tool names (e.g. `slack__send_message`, `github__create_issue`)
+- **`tools/call`** -- Parses the namespaced tool name, finds the upstream connector, and proxies the call via the existing `executeMCPTool` / `executeRESTTool` logic
 
-**New files:**
-- `src/pages/AddMCPPage.tsx` -- Registration form with tool discovery preview
-- `supabase/functions/discover-mcp-tools/index.ts` -- Edge function for MCP tool discovery
+Authentication: The function reads a `Bearer <key>` header, hashes it, looks up the `mcp_api_keys` table, and identifies the user.
 
-**Modified files:**
-- `src/App.tsx` -- Add route for `/connectors/add-mcp`
-- `src/pages/ConnectorsPage.tsx` -- Add "Register MCP Server" button
-- `src/pages/ConnectorDetailPage.tsx` -- Show MCP-specific details and re-discover button
-- `src/components/connectors/ConnectorIcon.tsx` -- Add icon for user-registered MCP servers
+### 3. New UI Page: `MCPEndpointPage`
+A settings page at `/settings/mcp-endpoint` where users can:
 
-**Database:** No schema changes needed. The existing `connectors` table has `mcp_server_url`, and `connector_tools` has `source = 'mcp'`. New MCP registrations are simply new rows.
+- See their personal MCP endpoint URL
+- Generate / revoke API keys
+- Copy a ready-to-paste config snippet for Claude Desktop, Cursor, etc.
+- View which tools will be exposed (based on active connections)
 
-**Edge function flow:**
+### 4. Navigation Update
+Add a link to the new page in the sidebar/nav under Settings.
+
+## Technical Details
+
+### Tool Namespacing
+Tools are prefixed with the connector slug to avoid collisions:
+```
+{connector_slug}__{tool_name}
+```
+Example: A Slack connector with a `send_message` tool becomes `slack__send_message`.
+
+### Edge Function Structure
+
 ```text
-User enters MCP URL
-  --> Frontend calls discover-mcp-tools edge function
-  --> Edge function sends JSON-RPC {"method": "tools/list"} to the MCP server
-  --> Returns tool definitions to frontend
-  --> User confirms
-  --> Frontend inserts connector + tools into database
-  --> Connector appears on Connectors page for all users
+supabase/functions/mcp-server/
+  index.ts      -- Hono + mcp-lite server
+  deno.json     -- mcp-lite dependency
 ```
 
-**Security considerations:**
-- MCP server URLs are validated (must be HTTPS in production)
-- API keys for authenticated MCP servers are stored as secrets, not in plain text
-- Rate limiting already applies via the existing execute-tool function
-- Each user gets their own connection record for audit trail purposes
+The function will:
+1. Extract Bearer token from Authorization header
+2. Hash it with SHA-256 and look up `mcp_api_keys`
+3. Query `user_connections` (status = 'active') joined with `connectors` and `connector_tools`
+4. For `tools/list`: return all tools with namespaced names
+5. For `tools/call`: parse the namespace, find the connector's `mcp_server_url`, and forward the JSON-RPC call (or run REST simulation)
+
+### Config.toml Addition
+```toml
+[functions.mcp-server]
+verify_jwt = false
+```
+
+### API Key Generation
+Keys are generated client-side with `crypto.randomUUID()` prefixed with `mcp_`, displayed once to the user, then only the SHA-256 hash is stored. The prefix (`mcp_a1b2c3d4`) is stored for identification in the UI.
+
+### Security
+- API keys are hashed before storage (never stored in plaintext)
+- RLS on `mcp_api_keys` ensures user isolation
+- Rate limiting reuses existing per-user rate limit logic
+- Audit logging records every tool call through the proxy
+
+## Files to Create/Modify
+
+| Action | File |
+|--------|------|
+| Create | `supabase/functions/mcp-server/index.ts` |
+| Create | `supabase/functions/mcp-server/deno.json` |
+| Create | `src/pages/MCPEndpointPage.tsx` |
+| Modify | `src/App.tsx` (add route) |
+| Modify | `src/components/layout/Layout.tsx` (add nav link) |
+| Migration | Create `mcp_api_keys` table with RLS |
 
