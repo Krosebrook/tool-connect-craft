@@ -11,13 +11,15 @@ import {
   Clock,
   Webhook,
   Bell,
-  Server
+  Server,
+  Store
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useState } from 'react';
 
 const navItems = [
+  { href: '/marketplace', label: 'Marketplace', icon: Store, tooltip: 'Browse and install pre-built connectors with one click' },
   { href: '/connectors', label: 'Connectors', icon: Plug2, tooltip: 'Browse and manage service integrations' },
   { href: '/connections', label: 'Connections', icon: Link2, tooltip: 'View active OAuth connections and token status' },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, tooltip: 'Monitor jobs, logs, and connector health' },
