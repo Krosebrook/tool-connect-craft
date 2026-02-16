@@ -12,13 +12,15 @@ import {
   Webhook,
   Bell,
   Server,
-  Store
+  Store,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useState } from 'react';
 
 const navItems = [
+  { href: '/guide', label: 'Setup Guide', icon: BookOpen, tooltip: 'Step-by-step guide to connect your first service' },
   { href: '/marketplace', label: 'Marketplace', icon: Store, tooltip: 'Browse and install pre-built connectors with one click' },
   { href: '/connectors', label: 'Connectors', icon: Plug2, tooltip: 'Browse and manage service integrations' },
   { href: '/connections', label: 'Connections', icon: Link2, tooltip: 'View active OAuth connections and token status' },
