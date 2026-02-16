@@ -66,9 +66,12 @@ async function encryptToken(token: string, key: CryptoKey): Promise<string> {
   return btoa(String.fromCharCode(...combined));
 }
 
-// Get or generate encryption key
+// Get encryption key - fails fast if not configured
 async function getEncryptionKey(): Promise<CryptoKey> {
-  const keyMaterial = Deno.env.get("TOKEN_ENCRYPTION_KEY") || "default-key-change-in-production";
+  const keyMaterial = Deno.env.get("TOKEN_ENCRYPTION_KEY");
+  if (!keyMaterial) {
+    throw new Error("TOKEN_ENCRYPTION_KEY environment variable is not configured. Cannot encrypt tokens.");
+  }
   const encoder = new TextEncoder();
   const keyData = await crypto.subtle.digest("SHA-256", encoder.encode(keyMaterial));
   
