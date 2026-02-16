@@ -2,457 +2,249 @@
 
 ## Overview
 
-Tool Connect Craft is built on a modern, scalable architecture that separates concerns between the frontend presentation layer, backend data/auth layer, and external service integrations. This document provides a comprehensive view of the system architecture, data flows, and design decisions.
+Tool Connect Craft is a full-stack integration platform with a React SPA frontend, a Supabase PostgreSQL backend with Row-Level Security, and Deno-based Edge Functions for secure server-side operations. This document describes the system design, data flows, and key decisions.
 
 ---
 
-## Table of Contents
-
-- [High-Level Architecture](#high-level-architecture)
-- [Frontend Architecture](#frontend-architecture)
-- [Backend Architecture](#backend-architecture)
-- [Data Model](#data-model)
-- [Authentication Flow](#authentication-flow)
-- [Tool Execution Pipeline](#tool-execution-pipeline)
-- [Real-time Communication](#real-time-communication)
-- [Security Architecture](#security-architecture)
-- [Scalability Considerations](#scalability-considerations)
-
----
-
-## High-Level Architecture
-
-### System Components
+## System Components
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Client Layer                          │
-├─────────────────────────────────────────────────────────────┤
-│  React SPA (Vite + TypeScript)                              │
-│  ├─ React Router (routing)                                   │
-│  ├─ Context API (state management)                           │
-│  ├─ TanStack Query (data fetching)                           │
-│  └─ shadcn/ui + Tailwind (UI components)                     │
-└────────────────────┬────────────────────────────────────────┘
-                     │ HTTPS / WebSocket
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Supabase Backend                         │
-├─────────────────────────────────────────────────────────────┤
-│  PostgreSQL Database                                         │
-│  ├─ Tables (connectors, jobs, connections, etc.)            │
-│  ├─ Row Level Security (RLS)                                │
-│  ├─ Realtime subscriptions                                  │
-│  └─ Functions & Triggers                                     │
-│                                                              │
-│  Supabase Auth                                               │
-│  ├─ User management                                          │
-│  ├─ Session handling                                         │
-│  └─ JWT tokens                                               │
-│                                                              │
-│  Edge Functions (Planned)                                    │
-│  ├─ OAuth callback handlers                                 │
-│  ├─ Tool execution orchestration                            │
-│  └─ Secret management                                        │
-└────────────────────┬────────────────────────────────────────┘
-                     │ REST / OAuth / MCP
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   External Services                          │
-├─────────────────────────────────────────────────────────────┤
-│  OAuth Providers: Google, GitHub, Slack, etc.               │
-│  REST APIs: Gmail, Notion, Airtable, etc.                   │
-│  MCP Servers: Custom tool servers                           │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                      Client Layer (React SPA)                    │
+│                                                                  │
+│  React Router v6 ─ 10 lazy-loaded pages                         │
+│  ConnectorContext ─ global state for connectors/jobs/connections │
+│  TanStack Query v5 ─ caching, stale-while-revalidate            │
+│  Supabase Realtime ─ WebSocket subscriptions for jobs/events    │
+│  shadcn/ui + Tailwind CSS ─ design system                       │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ HTTPS / WSS
+                             ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      Supabase Backend                            │
+│                                                                  │
+│  PostgreSQL 15+                                                  │
+│  ├─ 11 tables with RLS policies                                 │
+│  ├─ 6 custom enums                                               │
+│  ├─ Realtime (Change Data Capture)                               │
+│  └─ Auto-updated timestamps via triggers                         │
+│                                                                  │
+│  Supabase Auth (JWT, email/password)                             │
+│                                                                  │
+│  Edge Functions (Deno runtime) ─ 8 functions                     │
+│  ├─ execute-tool       (tool dispatch + rate limiting)           │
+│  ├─ oauth-start        (PKCE initiation)                         │
+│  ├─ oauth-callback     (token exchange + encryption)             │
+│  ├─ token-refresh      (automatic token renewal)                 │
+│  ├─ health-check       (parallel MCP/REST probes)                │
+│  ├─ send-health-alert  (email via Resend)                        │
+│  ├─ send-webhook       (HMAC + retry + template)                 │
+│  ├─ test-webhook       (connectivity test)                       │
+│  └─ retry-webhook      (re-deliver failed)                       │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                   External Services                              │
+│  OAuth Providers: Google, GitHub, Slack                          │
+│  REST APIs: Gmail, Notion, Airtable, etc.                       │
+│  MCP Servers: Any JSON-RPC 2.0 MCP-compatible server            │
+└──────────────────────────────────────────────────────────────────┘
 ```
-
-### Design Principles
-
-1. **Separation of Concerns**: Frontend handles presentation, backend handles business logic and data
-2. **Type Safety**: TypeScript everywhere, generated types from database schema
-3. **Real-time First**: WebSocket subscriptions for live updates
-4. **Security by Default**: RLS policies, encrypted secrets, audit logging
-5. **Developer Experience**: Hot reload, type checking, comprehensive error messages
 
 ---
 
 ## Frontend Architecture
 
-### Component Hierarchy
+### Routing (Lazy-loaded)
 
-```
-App
-├── BrowserRouter
-│   ├── AuthProvider (Context)
-│   │   └── ConnectorProvider (Context)
-│   │       ├── Routes
-│   │       │   ├── LandingPage
-│   │       │   ├── AuthPage
-│   │       │   ├── ConnectorsPage (Protected)
-│   │       │   │   └── ConnectorCard[]
-│   │       │   ├── ConnectorDetailPage (Protected)
-│   │       │   │   ├── ConnectorIcon
-│   │       │   │   └── ToolExecutor
-│   │       │   ├── DashboardPage (Protected)
-│   │       │   │   └── JobCard[]
-│   │       │   └── SecuritySettingsPage (Protected)
-│   │       ├── Toaster (UI feedback)
-│   │       └── Sonner (Toast notifications)
-│   └── QueryClientProvider (TanStack Query)
-```
+| Route | Page | Description |
+|---|---|---|
+| `/` | LandingPage | Feature showcase |
+| `/connectors` | ConnectorsPage | Browse & filter connectors |
+| `/connectors/:slug` | ConnectorDetailPage | Tools & execution |
+| `/connections` | ConnectionsPage | Manage active connections |
+| `/dashboard` | DashboardPage | Job monitoring |
+| `/scheduler` | SchedulerPage | Cron job management |
+| `/webhooks` | WebhooksPage | Webhook CRUD + delivery history |
+| `/settings/notifications` | NotificationPreferencesPage | Alert preferences |
+| `/settings/security` | SecuritySettingsPage | Security settings |
+
+All pages are lazy-loaded with `React.lazy()` and wrapped in `<Suspense>` with a `PageLoader` fallback.
 
 ### State Management
 
-**AuthContext**
-- User session state
-- Authentication methods (signIn, signUp, signOut)
-- Loading state
-- Auto-refresh session via Supabase listener
+**ConnectorContext** — single context providing:
+- `connectors`, `tools`, `connections`, `jobs`, `events`, `logs`
+- Methods: `connect()`, `disconnect()`, `executeTool()`, `fetchEventsForJob()`
+- Powered by `useConnectorData` hook which sets up three Realtime channels
 
-**ConnectorContext**
-- Connector catalog
-- User connections
-- Pipeline jobs and events
-- Action logs
-- CRUD operations (connect, disconnect, executeTool)
+**TanStack Query** — configured with:
+- 5-minute stale time, 30-minute GC time
+- 2 retries for queries, 1 for mutations
+- `refetchOnWindowFocus: false`
 
-### Data Fetching Strategy
+### Real-time Subscriptions
 
-1. **Initial Load**: Context providers fetch data on mount
-2. **Real-time Updates**: Supabase subscriptions push changes
-3. **Optimistic Updates**: UI updates immediately, sync with backend
-4. **Error Handling**: Toast notifications for user feedback
+Three Supabase Realtime channels subscribe to `postgres_changes`:
 
-### Routing
-
-**Public Routes**
-- `/` - Landing page
-- `/auth` - Sign in / Sign up
-
-**Protected Routes** (require authentication)
-- `/connectors` - Browse all connectors
-- `/connectors/:slug` - Connector detail and tool execution
-- `/dashboard` - Job monitoring dashboard
-- `/settings/security` - Security settings
+1. **`jobs-changes`** — `pipeline_jobs` INSERT/UPDATE filtered by `user_id`
+2. **`connections-changes`** — `user_connections` INSERT/UPDATE/DELETE filtered by `user_id`
+3. **`events-changes`** — `pipeline_events` INSERT (all, joined client-side by `job_id`)
 
 ---
 
 ## Backend Architecture
 
-### Supabase Services
+### Edge Function Design
 
-**PostgreSQL Database**
-- Primary data store
-- ACID compliance
-- JSON/JSONB support for flexible schemas
-- Full-text search capabilities
+Each Edge Function follows a consistent pattern:
+1. CORS preflight handling
+2. Service-role Supabase client instantiation
+3. Request validation
+4. Business logic
+5. Structured JSON response with appropriate HTTP status
 
-**Supabase Auth**
-- JWT-based authentication
-- Email/password sign up
-- OAuth provider integration (planned)
-- Session management
-- MFA support (future)
+**Key patterns:**
+- **Rate limiting** (execute-tool): In-memory sliding window per user (30/min) and per connector (100/min)
+- **PKCE** (oauth-start/callback): `crypto.subtle` for SHA-256 hashing and code challenge generation
+- **Token encryption** (oauth-callback, token-refresh): AES-GCM with derived key from `TOKEN_ENCRYPTION_KEY` env var
+- **Retry with backoff** (send-webhook, retry-webhook): Exponential delays (1s, 2s, 4s), skip retries on 4xx (except 429)
+- **Alert deduplication** (send-health-alert): In-memory cooldown map (15 min per connector)
 
-**Realtime**
-- WebSocket connections
-- Change Data Capture (CDC)
-- Row-level filtering
-- Presence tracking (future)
+### Tool Execution Flow
 
-**Edge Functions** (Planned)
-- Deno runtime
-- OAuth callback handling
-- Tool execution orchestration
-- Rate limiting
-- Circuit breaker implementation
+```
+Client                    Edge Function              Database           External
+  │                         │                          │                  │
+  ├─ INSERT pipeline_job ──>│                          │                  │
+  │  (status: queued)       │                          │                  │
+  │                         │                          │                  │
+  ├─ invoke execute-tool ──>│                          │                  │
+  │                         ├─ check rate limits       │                  │
+  │                         ├─ fetch connector ───────>│                  │
+  │                         ├─ fetch tool + schema ───>│                  │
+  │                         ├─ validate args           │                  │
+  │                         ├─ UPDATE job (running) ──>│                  │
+  │                         ├─ INSERT event (info) ───>│                  │
+  │                         │                          │                  │
+  │                         ├─ MCP: POST jsonrpc ─────────────────────────>│
+  │                         │  or REST: simulated      │                  │
+  │                         │<────────────────────────────── result ───────┤
+  │                         │                          │                  │
+  │                         ├─ UPDATE job (result) ───>│                  │
+  │                         ├─ INSERT event (done) ───>│                  │
+  │                         ├─ INSERT action_log ─────>│                  │
+  │<── JSON response ───────┤                          │                  │
+  │                         │                          │                  │
+  │<── Realtime WS push ───────────────────────────────┤                  │
+```
 
-### Database Layer
+### OAuth Flow (PKCE)
 
-**Tables**
-- `connectors` - Service catalog
-- `connector_tools` - Available operations
-- `user_connections` - User auth tokens
-- `oauth_transactions` - OAuth flow state
-- `pipeline_jobs` - Execution records
-- `pipeline_events` - Job event log
-- `action_logs` - Audit trail
-
-**Indexes**
-- User-based queries (user_id columns)
-- Status filtering (status columns)
-- Time-series queries (created_at columns)
-- Foreign key relationships
-
-**Triggers**
-- `update_updated_at_column()` - Auto-update timestamps
+```
+Client                  oauth-start              Provider           oauth-callback
+  │                        │                        │                    │
+  ├─ POST {connectorId} ──>│                        │                    │
+  │                        ├─ gen codeVerifier       │                    │
+  │                        ├─ gen codeChallenge      │                    │
+  │                        ├─ gen state              │                    │
+  │                        ├─ INSERT oauth_tx ──>DB  │                    │
+  │<── {authUrl, codeV} ───┤                        │                    │
+  │                        │                        │                    │
+  ├─ redirect ────────────────────────────────────>│                    │
+  │<─ callback?code=X&state=Y ────────────────────┤                    │
+  │                        │                        │                    │
+  ├─ POST {code, state, codeVerifier} ─────────────────────────────────>│
+  │                        │                        │  ├─ verify state   │
+  │                        │                        │  ├─ verify hash    │
+  │                        │                        │  ├─ exchange code─>│
+  │                        │                        │  │<── tokens ──────┤
+  │                        │                        │  ├─ encrypt tokens │
+  │                        │                        │  ├─ UPSERT conn   │
+  │                        │                        │  ├─ UPDATE tx done│
+  │<── {success, scopes} ──────────────────────────────────────────────┤
+```
 
 ---
 
 ## Data Model
 
-### Entity Relationship Diagram
+### Entity Relationships
 
 ```
-┌──────────────┐         ┌────────────────┐
-│  Connectors  │◄──────┐ │ User           │
-│              │       │ │ Connections    │
-│ • id         │       │ │                │
-│ • name       │       │ │ • id           │
-│ • slug       │       │ │ • user_id      │
-│ • auth_type  │       └─│ • connector_id │
-│ • oauth_cfg  │         │ • status       │
-└──────┬───────┘         │ • secrets      │
-       │                 └────────────────┘
-       │ 1:N                      │
-       ▼                          │ 1:N
-┌──────────────┐                  │
-│ Connector    │                  ▼
-│ Tools        │         ┌────────────────┐
-│              │         │ Pipeline       │
-│ • id         │         │ Jobs           │
-│ • name       │         │                │
-│ • schema     │         │ • id           │
-│ • source     │         │ • user_id      │
-└──────────────┘         │ • status       │
-                         │ • input/output │
-                         └────────┬───────┘
-                                  │ 1:N
-                                  ▼
-                         ┌────────────────┐
-                         │ Pipeline       │
-                         │ Events         │
-                         │                │
-                         │ • id           │
-                         │ • job_id       │
-                         │ • level        │
-                         │ • message      │
-                         └────────────────┘
+connectors ──1:N──> connector_tools
+connectors ──1:N──> user_connections <──N:1── users (implicit)
+connectors ──1:N──> oauth_transactions <──N:1── users
+users ──1:N──> pipeline_jobs ──1:N──> pipeline_events
+users ──1:N──> action_logs
+users ──1:N──> webhooks ──1:N──> webhook_deliveries
+users ──1:1──> notification_preferences
+scheduler_jobs (standalone)
 ```
 
-### Key Relationships
+### Enums
 
-1. **Connector → Connector Tools**: One-to-Many
-   - Each connector has multiple tools
-
-2. **User → User Connections**: One-to-Many
-   - Each user can connect to multiple services
-
-3. **Connector → User Connections**: One-to-Many
-   - Each connector can be connected by multiple users
-
-4. **User → Pipeline Jobs**: One-to-Many
-   - Each user can have multiple jobs
-
-5. **Pipeline Job → Pipeline Events**: One-to-Many
-   - Each job generates multiple events
-
-### Type Enums
-
-```typescript
-type AuthType = 'oauth' | 'api_key' | 'none';
-type ToolSource = 'mcp' | 'rest';
-type ConnectionStatus = 'pending' | 'active' | 'expired' | 'revoked' | 'error';
-type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
-type EventLevel = 'info' | 'warn' | 'error';
-```
-
----
-
-## Authentication Flow
-
-### User Sign Up
-
-```
-Client                  Supabase Auth           Database
-  │                          │                      │
-  ├──signUp(email, pwd)─────>│                      │
-  │                          ├──create user──────────>│
-  │                          │<─user record────────────┤
-  │<─session + JWT───────────┤                      │
-  │                          │                      │
-  ├──auto redirect to /──────>                      │
-```
-
-### User Sign In
-
-```
-Client                  Supabase Auth           Database
-  │                          │                      │
-  ├──signInWithPassword─────>│                      │
-  │                          ├──verify credentials─>│
-  │                          │<─user record────────┤
-  │<─session + JWT───────────┤                      │
-  │                          │                      │
-  ├──setUser(session.user)──>                      │
-```
-
----
-
-## Tool Execution Pipeline
-
-### Execution Flow
-
-```
-1. User clicks "Execute Tool"
-   └─> UI calls executeTool(slug, toolName, args)
-
-2. Create Job Record
-   └─> INSERT into pipeline_jobs (status: queued)
-   
-3. Create Initial Event
-   └─> INSERT into pipeline_events ("Starting...")
-
-4. Trigger Execution (simulated, will be Edge Function)
-   ├─> Update job (status: running)
-   ├─> Call external API / MCP server
-   ├─> Stream events (processing, progress)
-   └─> Update job (status: succeeded/failed)
-
-5. Create Action Log
-   └─> INSERT into action_logs (audit trail)
-
-6. Real-time Updates
-   └─> WebSocket pushes updates to client
-```
+| Enum | Values |
+|---|---|
+| `auth_type` | `oauth`, `api_key`, `none` |
+| `connection_status` | `pending`, `active`, `expired`, `revoked`, `error` |
+| `job_status` | `queued`, `running`, `succeeded`, `failed`, `canceled` |
+| `event_level` | `info`, `warn`, `error` |
+| `oauth_transaction_status` | `started`, `completed`, `failed` |
+| `tool_source` | `mcp`, `rest` |
 
 ### Job State Machine
 
 ```
-    ┌─────────┐
-    │ QUEUED  │
-    └────┬────┘
-         │
-         ▼
-    ┌─────────┐
-    │ RUNNING │
-    └────┬────┘
-         │
-    ┌────┴────┐
-    ▼         ▼
-┌─────────┐ ┌─────────┐
-│SUCCEEDED│ │ FAILED  │
-└─────────┘ └─────────┘
-         │
-         ▼
-    ┌─────────┐
-    │CANCELED │
-    └─────────┘
-```
-
----
-
-## Real-time Communication
-
-### WebSocket Subscriptions
-
-**Jobs Channel**
-```typescript
-supabase
-  .channel('jobs-changes')
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'pipeline_jobs',
-    filter: `user_id=eq.${user.id}`
-  }, (payload) => {
-    // Update local state
-  })
-  .subscribe()
-```
-
-**Events Channel**
-```typescript
-supabase
-  .channel('events-changes')
-  .on('postgres_changes', {
-    event: 'INSERT',
-    schema: 'public',
-    table: 'pipeline_events'
-  }, (payload) => {
-    // Stream events to UI
-  })
-  .subscribe()
+  queued ──> running ──┬──> succeeded
+                       └──> failed
+                       └──> canceled
 ```
 
 ---
 
 ## Security Architecture
 
-### Row Level Security (RLS)
+### Defense in Depth
 
-**Principle**: Users can only access their own data
+| Layer | Mechanism |
+|---|---|
+| **Database** | RLS policies on all 11 tables; `auth.uid()` scoping |
+| **Transport** | HTTPS/WSS enforced by Supabase |
+| **Auth** | JWT with auto-refresh; email/password |
+| **Secrets** | AES-GCM application-layer encryption; key from env var |
+| **OAuth** | PKCE with SHA-256 code challenge |
+| **Webhooks** | HMAC-SHA256 signature verification |
+| **Rate Limiting** | Per-user (30/min) and per-connector (100/min) |
+| **Audit** | Complete action_logs with request/response/latency |
+| **Input Validation** | Zod schemas (frontend), JSON Schema (execute-tool) |
 
-**Example Policy** (user_connections):
-```sql
-CREATE POLICY "Users can view their own connections"
-ON user_connections FOR SELECT
-TO authenticated
-USING (auth.uid() = user_id);
-```
+### Token Storage
 
-### Secret Management
-
-**Current**: Secret references stored in database
-**Future**: Supabase Vault integration
-
-```typescript
-interface UserConnection {
-  secret_ref_access: string;   // Reference to Vault secret
-  secret_ref_refresh: string;  // Reference to refresh token
-}
-```
+Tokens are encrypted with AES-GCM before being stored in `user_connections.secret_ref_access` / `secret_ref_refresh`. The encryption key is derived from the `TOKEN_ENCRYPTION_KEY` environment variable via SHA-256.
 
 ---
 
-## Scalability Considerations
+## Design Decisions
 
-### Future Improvements
-
-1. **Edge Functions for Tool Execution**
-   - Distribute load across multiple regions
-   - Isolate execution from main app
-
-2. **Redis Cache Layer**
-   - Cache connector catalog
-   - Cache frequently accessed connections
-   - Rate limiting state
-
-3. **Job Queue (BullMQ / Temporal)**
-   - Durable job execution
-   - Retry with exponential backoff
-   - Job prioritization
-
-### Performance Targets
-
-| Metric | Target | Current |
-|--------|--------|---------|
-| Page Load | < 2s | ~1.5s |
-| Tool Execution | < 5s | 2-3s (simulated) |
-| Real-time Latency | < 500ms | ~200ms |
-| Database Queries | < 100ms | ~50ms avg |
+| Decision | Rationale |
+|---|---|
+| **Supabase** | All-in-one (DB + Auth + Realtime + Edge Functions + RLS) |
+| **Edge Functions over client-side execution** | Keeps secrets server-side; enables rate limiting |
+| **Context API over Redux** | Sufficient for current scale; less boilerplate |
+| **Lazy loading** | All pages code-split for optimal initial load |
+| **In-memory rate limiting** | Acceptable for single-instance Edge Functions; resets on cold start |
+| **HMAC webhook signing** | Industry standard for webhook verification |
+| **Exponential backoff** | Prevents thundering herd on transient failures |
 
 ---
 
-## Technology Decisions
+## Performance
 
-### Why React?
-- **Ecosystem**: Large library of components and tools
-- **Performance**: Virtual DOM and hooks for optimization
-- **Developer Experience**: Hot reload, dev tools, community support
-
-### Why Vite?
-- **Speed**: 10-100x faster than webpack
-- **Modern**: Native ESM support
-- **Simple**: Minimal configuration
-
-### Why Supabase?
-- **All-in-one**: Database + Auth + Realtime + Storage
-- **Open Source**: No vendor lock-in (self-hostable)
-- **PostgreSQL**: Powerful SQL database with JSON support
-- **Developer Experience**: Auto-generated types, client SDK
-
-### Why TypeScript?
-- **Type Safety**: Catch errors at compile time
-- **IntelliSense**: Better IDE support
-- **Refactoring**: Safer code changes
+| Metric | Target | Notes |
+|---|---|---|
+| Initial page load | < 2s | Code-split pages, 5-min query stale time |
+| Tool execution | < 5s | Depends on external service latency |
+| Realtime latency | < 500ms | Supabase Realtime CDC |
+| Health check | < 15s | 10s timeout per connector, run in parallel |
