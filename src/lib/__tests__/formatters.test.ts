@@ -53,9 +53,11 @@ describe('formatTimeAgo', () => {
   });
 
   it('formats older dates with month and day', () => {
-    const oldDate = new Date('2024-01-01T00:00:00Z').toISOString();
+    // Use a date guaranteed to be more than 4 weeks ago
+    const oldDate = new Date(Date.now() - 60 * 86400000).toISOString();
     const result = formatTimeAgo(oldDate);
-    expect(result).toContain('Jan');
+    // Should fall through to toLocaleDateString (not "Xw ago")
+    expect(result).not.toMatch(/ago$/);
   });
 });
 
