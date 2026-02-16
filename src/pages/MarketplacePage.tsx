@@ -18,7 +18,9 @@ import {
   ArrowRight,
   Sparkles,
   Filter,
-  Eye
+  Eye,
+  Zap,
+  TrendingUp,
 } from 'lucide-react';
 
 export interface MarketplaceConnector {
@@ -416,6 +418,58 @@ export default function MarketplacePage() {
           <span>•</span>
           <span>{filtered.reduce((sum, c) => sum + c.toolCount, 0)} total tools</span>
         </div>
+
+        {/* Featured Popular Services */}
+        {selectedCategory === 'All' && !search && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Popular Services — One-Click Install</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {MARKETPLACE_CONNECTORS
+                .filter(c => ['hubspot', 'salesforce', 'zendesk', 'shopify'].includes(c.slug))
+                .map(connector => {
+                  const isInstalled = installedSlugs.has(connector.slug);
+                  const isInstallingThis = installing === connector.slug;
+                  return (
+                    <Card key={connector.slug} className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/[0.03]">
+                      <CardContent className="p-5 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <ConnectorIcon slug={connector.slug} name={connector.name} className="h-10 w-10 shrink-0" />
+                          <div>
+                            <h3 className="font-semibold text-foreground">{connector.name}</h3>
+                            <p className="text-xs text-muted-foreground">{connector.toolCount} tools</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{connector.description}</p>
+                        <div className="flex gap-2">
+                          <Button
+                            className="flex-1"
+                            size="sm"
+                            variant={isInstalled ? 'outline' : 'glow'}
+                            disabled={isInstalled || isInstallingThis}
+                            onClick={() => handleInstall(connector)}
+                          >
+                            {isInstallingThis ? 'Installing...' : isInstalled ? (
+                              <><Check className="h-3 w-3" /> Installed</>
+                            ) : (
+                              <><Zap className="h-3 w-3" /> Install</>
+                            )}
+                          </Button>
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/marketplace/${connector.slug}`}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          </div>
+        )}
 
         {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
