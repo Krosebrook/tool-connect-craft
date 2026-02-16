@@ -1,676 +1,455 @@
 # Deployment Guide
 
-This guide covers deploying Tool Connect Craft to various platforms and environments.
+Production deployment reference for Tool Connect Craft — covering environment configuration, secrets, Edge Function deployment, and operational checklists.
 
 ---
 
 ## Table of Contents
 
-- [Prerequisites](#prerequisites)
-- [Environment Setup](#environment-setup)
-- [Deployment Options](#deployment-options)
-  - [Vercel (Recommended)](#vercel-recommended)
-  - [Netlify](#netlify)
-  - [Docker](#docker)
-  - [Self-Hosted](#self-hosted)
-- [Database Setup](#database-setup)
-- [Post-Deployment](#post-deployment)
-- [Monitoring](#monitoring)
+- [Architecture Overview](#architecture-overview)
+- [Environment Configuration](#environment-configuration)
+- [Required Secrets](#required-secrets)
+- [Edge Function Deployment](#edge-function-deployment)
+- [Frontend Deployment](#frontend-deployment)
+- [Database Migrations](#database-migrations)
+- [Pre-Deployment Checklist](#pre-deployment-checklist)
+- [Post-Deployment Verification](#post-deployment-verification)
+- [Monitoring & Observability](#monitoring--observability)
+- [Rollback Procedures](#rollback-procedures)
 - [Troubleshooting](#troubleshooting)
 
 ---
 
-## Prerequisites
+## Architecture Overview
 
-Before deploying, ensure you have:
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│  React Frontend │────▶│  Lovable Cloud Edge   │────▶│  PostgreSQL DB  │
+│  (Vite + TS)    │     │  Functions (Deno)     │     │  (11 tables)    │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+        │                        │
+        │                        ├── execute-tool
+        │                        ├── oauth-start / oauth-callback
+        │                        ├── token-refresh
+        │                        ├── health-check / send-health-alert
+        │                        └── send-webhook / test-webhook / retry-webhook
+        │
+        └── Supabase JS Client (realtime subscriptions, direct queries)
+```
 
-- [ ] Supabase project created
-- [ ] Database migrations applied
-- [ ] Environment variables documented
-- [ ] Build passes locally (`npm run build`)
-- [ ] All tests passing (when implemented)
+**Hosting**: Lovable Cloud handles both frontend hosting and backend infrastructure. Edge Functions deploy automatically on code push.
 
 ---
 
-## Environment Setup
+## Environment Configuration
 
-### Required Environment Variables
+### Frontend Variables (`.env`)
 
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
-VITE_SUPABASE_PROJECT_ID=your-project-id
-```
+These are auto-managed by Lovable Cloud. **Do not edit manually.**
 
-### Getting Supabase Credentials
+| Variable | Description | Auto-configured |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Backend API endpoint | ✅ |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Public anon key for client-side auth | ✅ |
+| `VITE_SUPABASE_PROJECT_ID` | Project identifier | ✅ |
 
-1. Go to [Supabase Dashboard](https://app.supabase.com/)
-2. Select your project
-3. Navigate to **Settings** > **API**
-4. Copy:
-   - Project URL (VITE_SUPABASE_URL)
-   - Anon/public key (VITE_SUPABASE_PUBLISHABLE_KEY)
-5. Get Project ID from **Settings** > **General**
+### Runtime Validation
 
----
+The `src/lib/config.ts` module validates all required variables at startup. In production, missing `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` throws a fatal error before the app renders.
 
-## Deployment Options
-
-### Vercel (Recommended)
-
-Vercel is the recommended platform for deploying Vite apps with zero configuration.
-
-#### Via Vercel Dashboard
-
-1. **Import Repository**
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Click "Add New" > "Project"
-   - Import your GitHub repository
-
-2. **Configure Build Settings**
-   ```
-   Framework Preset: Vite
-   Build Command: npm run build
-   Output Directory: dist
-   Install Command: npm install
-   ```
-
-3. **Add Environment Variables**
-   - Go to "Settings" > "Environment Variables"
-   - Add all required variables
-   - Make sure they're available for Production, Preview, and Development
-
-4. **Deploy**
-   - Click "Deploy"
-   - Wait for build to complete
-
-#### Via Vercel CLI
-
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Login
-vercel login
-
-# Deploy to production
-vercel --prod
-
-# Set environment variables
-vercel env add VITE_SUPABASE_URL
-vercel env add VITE_SUPABASE_PUBLISHABLE_KEY
-vercel env add VITE_SUPABASE_PROJECT_ID
-```
-
-#### Automatic Deployments
-
-- **Production**: Pushes to `main` branch
-- **Preview**: Pull requests
-- **Development**: Pushes to other branches
-
-#### Custom Domain
-
-1. Go to "Settings" > "Domains"
-2. Add your custom domain
-3. Update DNS records as instructed
-4. Wait for SSL certificate provisioning
-
----
-
-### Netlify
-
-#### Via Netlify Dashboard
-
-1. **Import Repository**
-   - Go to [Netlify Dashboard](https://app.netlify.com/)
-   - Click "Add new site" > "Import an existing project"
-   - Connect to GitHub and select repository
-
-2. **Configure Build Settings**
-   ```
-   Build command: npm run build
-   Publish directory: dist
-   ```
-
-3. **Add Environment Variables**
-   - Go to "Site settings" > "Build & deploy" > "Environment"
-   - Add all required variables
-
-4. **Deploy**
-   - Click "Deploy site"
-
-#### Via Netlify CLI
-
-```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Login
-netlify login
-
-# Initialize
-netlify init
-
-# Deploy
-netlify deploy --prod
-
-# Set environment variables
-netlify env:set VITE_SUPABASE_URL "your-url"
-netlify env:set VITE_SUPABASE_PUBLISHABLE_KEY "your-key"
-netlify env:set VITE_SUPABASE_PROJECT_ID "your-project-id"
-```
-
-#### Netlify Configuration File
-
-Create `netlify.toml` in project root:
-
-```toml
-[build]
-  command = "npm run build"
-  publish = "dist"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[build.environment]
-  NODE_VERSION = "18"
-```
-
----
-
-### Docker
-
-#### Dockerfile
-
-Create `Dockerfile` in project root:
-
-```dockerfile
-# Build stage
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-
-# Copy built assets
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
-EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-#### nginx.conf
-
-Create `nginx.conf`:
-
-```nginx
-server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_types text/plain text/css text/xml text/javascript 
-               application/x-javascript application/xml+rss 
-               application/javascript application/json;
-
-    # SPA routing
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
+```typescript
+// Production guard in src/lib/config.ts
+if (appConfig.isProduction) {
+  if (!supabaseConfig.url || !supabaseConfig.publishableKey) {
+    throw new Error('Critical configuration missing for production');
+  }
 }
 ```
 
-#### Docker Compose
+---
 
-Create `docker-compose.yml`:
+## Required Secrets
 
-```yaml
-version: '3.8'
+Secrets are stored encrypted in the backend and available to Edge Functions via `Deno.env.get()`.
 
-services:
-  app:
-    build: .
-    ports:
-      - "80:80"
-    environment:
-      - NODE_ENV=production
-    restart: unless-stopped
-```
+### Core Secrets (Auto-Provisioned)
 
-#### Building and Running
+| Secret | Used By | Description |
+|---|---|---|
+| `SUPABASE_URL` | All Edge Functions | Backend API endpoint |
+| `SUPABASE_ANON_KEY` | All Edge Functions | Public key for client-scoped queries |
+| `SUPABASE_SERVICE_ROLE_KEY` | All Edge Functions | Admin key — bypasses RLS |
+| `SUPABASE_DB_URL` | Internal | Direct PostgreSQL connection string |
+| `SUPABASE_PUBLISHABLE_KEY` | Internal | Alias for anon key |
+
+### Application Secrets (User-Configured)
+
+| Secret | Used By | Required | Description |
+|---|---|---|---|
+| `RESEND_API_KEY` | `send-health-alert` | Yes (for email alerts) | [Resend](https://resend.com) API key for transactional email |
+| `LOVABLE_API_KEY` | AI features | Auto-provisioned | Lovable AI Gateway access |
+| `TOKEN_ENCRYPTION_KEY` | `oauth-callback`, `token-refresh` | **Critical** | AES-GCM 256-bit key for OAuth token encryption |
+
+### OAuth Provider Secrets (Per-Connector)
+
+Each OAuth connector requires its own client credentials:
+
+| Secret Pattern | Example | Description |
+|---|---|---|
+| `{PROVIDER}_CLIENT_ID` | `GITHUB_CLIENT_ID` | OAuth app client ID |
+| `{PROVIDER}_CLIENT_SECRET` | `GITHUB_CLIENT_SECRET` | OAuth app client secret |
+
+**Adding secrets:**
 
 ```bash
-# Build image
-docker build -t tool-connect-craft .
+# Via Lovable Cloud UI: Settings → Secrets
+# Or programmatically via the secrets management tools
+```
 
-# Run container
-docker run -d -p 80:80 tool-connect-craft
+### Security Requirements
 
-# With docker-compose
-docker-compose up -d
+| Secret | Minimum Requirements |
+|---|---|
+| `TOKEN_ENCRYPTION_KEY` | 32+ character random string. **No fallback in production.** |
+| `{PROVIDER}_CLIENT_SECRET` | Obtained from provider's OAuth app settings |
+| `SUPABASE_SERVICE_ROLE_KEY` | Never expose client-side. Edge Functions only. |
 
-# View logs
-docker logs -f <container-id>
+---
+
+## Edge Function Deployment
+
+### Automatic Deployment
+
+All 9 Edge Functions deploy automatically when code is pushed. No manual deployment steps required.
+
+### Function Inventory
+
+| Function | Path | JWT Required | Purpose |
+|---|---|---|---|
+| `execute-tool` | `supabase/functions/execute-tool/` | No (validated in code) | Tool execution with rate limiting |
+| `oauth-start` | `supabase/functions/oauth-start/` | No | Initiate PKCE OAuth flow |
+| `oauth-callback` | `supabase/functions/oauth-callback/` | No | Complete OAuth exchange, encrypt tokens |
+| `token-refresh` | `supabase/functions/token-refresh/` | No | Refresh expired OAuth tokens |
+| `health-check` | `supabase/functions/health-check/` | No | System health status |
+| `send-health-alert` | `supabase/functions/send-health-alert/` | No | Email alerts via Resend |
+| `send-webhook` | `supabase/functions/send-webhook/` | No | Deliver webhook payloads with HMAC signing |
+| `test-webhook` | `supabase/functions/test-webhook/` | No | Send test payload to webhook endpoint |
+| `retry-webhook` | `supabase/functions/retry-webhook/` | No | Retry failed deliveries with backoff |
+
+### JWT Configuration
+
+All functions use `verify_jwt = false` in `supabase/config.toml` and perform authentication in code:
+
+```toml
+[functions.execute-tool]
+verify_jwt = false
+
+[functions.health-check]
+verify_jwt = false
+# ... etc
+```
+
+### Calling Edge Functions
+
+```bash
+# Base URL pattern
+https://{PROJECT_ID}.supabase.co/functions/v1/{function-name}
+
+# Example: Health check
+curl https://jlnrqriebkfuglwmbniw.supabase.co/functions/v1/health-check
 ```
 
 ---
 
-### Self-Hosted
+## Frontend Deployment
 
-#### Using PM2
+### Build Process
 
 ```bash
 # Install dependencies
 npm install
 
-# Build application
+# Type check
+npx tsc --noEmit
+
+# Lint
+npx eslint .
+
+# Build for production
 npm run build
-
-# Install PM2 globally
-npm install -g pm2
-
-# Serve with PM2
-pm2 serve dist 8080 --name tool-connect-craft
-
-# Save PM2 configuration
-pm2 save
-
-# Set up auto-start
-pm2 startup
+# Output: dist/
 ```
 
-#### Using Nginx
+### Build Configuration
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+`vite.config.ts` handles:
+- Code splitting (React, Supabase in separate chunks)
+- Asset hashing for cache busting
+- Source map generation for error tracking
 
-2. **Copy files to web root**
-   ```bash
-   sudo cp -r dist/* /var/www/html/
-   ```
+### SPA Routing
 
-3. **Configure Nginx**
-   ```nginx
-   server {
-       listen 80;
-       server_name yourdomain.com;
+The app uses `react-router-dom` with client-side routing. All deployment targets must serve `index.html` for unmatched routes.
 
-       root /var/www/html;
-       index index.html;
+**10 Routes:**
 
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
-   }
-   ```
+| Route | Page | Auth Required |
+|---|---|---|
+| `/` | Landing Page | No |
+| `/connectors` | Connector Catalog | No |
+| `/connectors/:slug` | Connector Detail | No |
+| `/connections` | User Connections | No* |
+| `/dashboard` | Dashboard | No* |
+| `/webhooks` | Webhook Management | No* |
+| `/scheduler` | Job Scheduler | No* |
+| `/notifications` | Notification Preferences | No* |
+| `/settings/security` | Security Settings | No* |
+| `*` | 404 Not Found | No |
 
-4. **Restart Nginx**
-   ```bash
-   sudo systemctl restart nginx
-   ```
-
-#### With Apache
-
-1. **Enable mod_rewrite**
-   ```bash
-   sudo a2enmod rewrite
-   ```
-
-2. **Create `.htaccess`**
-   ```apache
-   <IfModule mod_rewrite.c>
-     RewriteEngine On
-     RewriteBase /
-     RewriteRule ^index\.html$ - [L]
-     RewriteCond %{REQUEST_FILENAME} !-f
-     RewriteCond %{REQUEST_FILENAME} !-d
-     RewriteRule . /index.html [L]
-   </IfModule>
-   ```
-
-3. **Copy build files**
-   ```bash
-   sudo cp -r dist/* /var/www/html/
-   ```
+*\*Uses hardcoded internal user ID — see [auth configuration memory](#).*
 
 ---
 
-## Database Setup
+## Database Migrations
+
+### 11 Tables
+
+| Table | RLS | Purpose |
+|---|---|---|
+| `connectors` | ✅ | Connector catalog (read-all) |
+| `connector_tools` | ✅ | Tool definitions per connector |
+| `user_connections` | ✅ | OAuth connections per user |
+| `oauth_transactions` | ✅ | PKCE flow state tracking |
+| `pipeline_jobs` | ✅ | Async job execution records |
+| `pipeline_events` | ✅ | Job event log entries |
+| `action_logs` | ✅ | Tool execution audit trail |
+| `webhooks` | ✅ | Webhook endpoint configurations |
+| `webhook_deliveries` | ✅ | Delivery attempts and responses |
+| `scheduler_jobs` | ✅ | Scheduled job definitions |
+| `notification_preferences` | ✅ | Per-user notification settings |
 
 ### Applying Migrations
 
-#### Using Supabase CLI
+Migrations in `supabase/migrations/` are applied automatically by Lovable Cloud. For manual application:
 
 ```bash
-# Install Supabase CLI
-npm install -g supabase
-
-# Link to your project
-supabase link --project-ref your-project-id
-
-# Push migrations
-supabase db push
+# Via Lovable Cloud UI: open backend → Run SQL
+# Paste migration contents and execute
 ```
 
-#### Manual Migration
-
-1. Go to [Supabase Dashboard](https://app.supabase.com/)
-2. Select your project
-3. Navigate to **SQL Editor**
-4. Copy contents of `supabase/migrations/*.sql`
-5. Execute the migration
-
-### Seeding Data (Optional)
-
-To add sample connectors:
+### Enums
 
 ```sql
--- Insert connectors
-INSERT INTO connectors (name, slug, description, category, auth_type, is_active)
-VALUES 
-  ('GitHub', 'github', 'Manage repositories and issues', 'Development', 'oauth', true),
-  ('Gmail', 'gmail', 'Send and receive emails', 'Communication', 'oauth', true);
-
--- Insert tools
-INSERT INTO connector_tools (connector_id, name, description, schema, source)
-VALUES 
-  ((SELECT id FROM connectors WHERE slug = 'github'), 
-   'list_repositories', 
-   'List user repositories', 
-   '{"type": "object", "properties": {}}',
-   'rest');
+-- 6 custom enums
+auth_type:                 'oauth' | 'api_key' | 'none'
+connection_status:         'pending' | 'active' | 'expired' | 'revoked' | 'error'
+event_level:               'info' | 'warn' | 'error'
+job_status:                'queued' | 'running' | 'succeeded' | 'failed' | 'canceled'
+oauth_transaction_status:  'started' | 'completed' | 'failed'
+tool_source:               'mcp' | 'rest'
 ```
 
 ---
 
-## Post-Deployment
+## Pre-Deployment Checklist
 
-### Verify Deployment
+### Critical (Must Pass)
 
-1. **Check health**
-   ```bash
-   curl https://your-domain.com
-   ```
+- [ ] `npm run build` succeeds with zero errors
+- [ ] `npx tsc --noEmit` passes type checking
+- [ ] `npx eslint .` passes with no errors
+- [ ] All tests pass: `npx vitest run`
+- [ ] `TOKEN_ENCRYPTION_KEY` is set (not using fallback default)
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` is configured
+- [ ] All OAuth provider secrets are set for enabled connectors
+- [ ] RLS is enabled on all 11 tables
+- [ ] No `VITE_` variables contain sensitive data
 
-2. **Test authentication**
-   - Try signing up
-   - Try signing in
-   - Check session persistence
+### Recommended
 
-3. **Test connectors**
-   - Browse connectors page
-   - Try connecting to a service
-   - Execute a tool
+- [ ] `RESEND_API_KEY` configured for health alert emails
+- [ ] Lighthouse score > 90 for performance
+- [ ] `npm audit` shows no critical vulnerabilities
+- [ ] Webhook secrets are set for HMAC signature verification
+- [ ] Review `action_logs` retention policy
+- [ ] Service worker (`public/sw.js`) cache strategy reviewed
+- [ ] `public/robots.txt` configured for production
 
-### Set Up Monitoring
+### Security Audit
 
-#### Vercel Analytics
+- [ ] No secrets in source code or `.env.example`
+- [ ] Edge Functions validate auth headers before data access
+- [ ] Rate limiting active on `execute-tool` (30 req/min/user, 100 req/min/connector)
+- [ ] OAuth state parameters use cryptographic randomness (64 hex chars)
+- [ ] PKCE code verifiers use SHA-256 challenge method
+- [ ] Token encryption uses AES-GCM with random IV per operation
+
+---
+
+## Post-Deployment Verification
+
+### Smoke Tests
 
 ```bash
-npm install @vercel/analytics
+PROJECT_URL="https://jlnrqriebkfuglwmbniw.supabase.co"
+
+# 1. Health check
+curl -s "$PROJECT_URL/functions/v1/health-check" | jq .
+
+# 2. Frontend loads
+curl -s -o /dev/null -w "%{http_code}" https://tool-connect-craft.lovable.app
+
+# 3. Connectors API (via Supabase client)
+curl -s "$PROJECT_URL/rest/v1/connectors?select=name,slug&limit=5" \
+  -H "apikey: $ANON_KEY" \
+  -H "Authorization: Bearer $ANON_KEY" | jq .
+
+# 4. Test webhook delivery
+curl -X POST "$PROJECT_URL/functions/v1/test-webhook" \
+  -H "Content-Type: application/json" \
+  -d '{"webhookId": "<webhook-id>"}'
 ```
 
-```typescript
-// Add to main.tsx
-import { Analytics } from '@vercel/analytics/react';
+### Verify Key Flows
 
-<App />
-<Analytics />
-```
-
-#### Custom Monitoring
-
-Consider adding:
-- Error tracking (Sentry)
-- Performance monitoring (New Relic, DataDog)
-- Uptime monitoring (Pingdom, UptimeRobot)
-
-### Configure CDN
-
-For static assets:
-- Use Cloudflare for global CDN
-- Enable caching for assets
-- Set up image optimization
+1. **Landing page** → `/` renders without console errors
+2. **Connector browsing** → `/connectors` lists available connectors
+3. **Dashboard** → `/dashboard` shows connection stats and recent activity
+4. **Webhook management** → `/webhooks` displays delivery history charts
+5. **Health check** → Edge Function returns `{ status: "ok" }`
 
 ---
 
-## Monitoring
+## Monitoring & Observability
 
-### Health Checks
+### Built-In Monitoring
 
-Create `/api/health` endpoint (future):
+| Component | Method | Location |
+|---|---|---|
+| Edge Function logs | Lovable Cloud logs viewer | Backend → Logs |
+| Database queries | `action_logs` table | Queryable via SQL |
+| Webhook deliveries | `webhook_deliveries` table | Includes response codes and bodies |
+| Job execution | `pipeline_events` table | Event-level granularity |
+| Health status | `health-check` function | Polled by scheduler |
 
-```typescript
-export default function handler(req, res) {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '0.1.0',
-  });
-}
-```
+### Key Metrics to Monitor
 
-### Uptime Monitoring
+| Metric | Source | Alert Threshold |
+|---|---|---|
+| Tool execution errors | `action_logs.status = 'error'` | > 5% error rate |
+| Webhook delivery failures | `webhook_deliveries.status = 'failed'` | > 3 consecutive failures |
+| Token refresh failures | `user_connections.status = 'error'` | Any occurrence |
+| Rate limit hits | `execute-tool` response headers | Sustained 429 responses |
+| Job queue depth | `pipeline_jobs.status = 'queued'` | > 50 queued jobs |
 
-Services to consider:
-- [UptimeRobot](https://uptimerobot.com/) - Free tier available
-- [Pingdom](https://www.pingdom.com/)
-- [StatusCake](https://www.statuscake.com/)
+### Health Alert Configuration
 
-Configure alerts for:
-- Site down
-- Response time > 2s
-- SSL certificate expiration
+The `send-health-alert` function sends email notifications via Resend when health checks detect issues. Requires `RESEND_API_KEY` secret.
+
+---
+
+## Rollback Procedures
+
+### Frontend Rollback
+
+Lovable Cloud maintains deployment history. To rollback:
+
+1. Navigate to project settings in Lovable
+2. Restore to a previous version
+3. Verify the restored version loads correctly
+
+### Database Rollback
+
+**⚠️ Destructive schema changes require manual data migration.**
+
+Before publishing schema changes that drop columns or tables:
+
+1. Check Live environment for existing data
+2. Export affected data if preservation is needed
+3. Run migration queries in Cloud View → Run SQL (with Live selected)
+4. Then publish the schema changes
+
+### Edge Function Rollback
+
+Edge Functions deploy with the frontend. Rolling back the frontend also rolls back function code. If only function logic needs reverting:
+
+1. Revert the specific function file in source control
+2. Push the change — auto-deploys the previous version
 
 ---
 
 ## Troubleshooting
 
-### Build Failures
+### Common Issues
 
-**Issue**: Build fails with dependency errors
+#### Build Fails with Type Errors
 
-**Solution**:
 ```bash
-# Clear cache and reinstall
-rm -rf node_modules package-lock.json
-npm install
-npm run build
+# Check for type issues
+npx tsc --noEmit
+
+# Common fix: regenerate Supabase types after schema changes
+# Types in src/integrations/supabase/types.ts update automatically
 ```
 
-**Issue**: Environment variables not found
+#### Edge Function Returns 500
 
-**Solution**:
-- Verify all VITE_ prefixed variables are set
-- Check deployment platform environment settings
-- Rebuild after adding variables
+1. Check function logs in Lovable Cloud backend
+2. Verify all required secrets are set
+3. Test locally with curl — check response body for error details
+4. Common cause: missing `TOKEN_ENCRYPTION_KEY` or `RESEND_API_KEY`
 
-### Runtime Errors
+#### CORS Errors in Browser
 
-**Issue**: White screen after deployment
+All Edge Functions include CORS headers. If errors persist:
+- Verify the function handles `OPTIONS` preflight requests
+- Check that `Access-Control-Allow-Headers` includes all custom headers
+- Standard headers allowed: `authorization, x-client-info, apikey, content-type`
 
-**Solution**:
-1. Check browser console for errors
-2. Verify base URL in `vite.config.ts`
-3. Check routing configuration
+#### OAuth Flow Fails
 
-**Issue**: Supabase connection fails
+1. Verify provider client ID and secret are set as secrets
+2. Check `oauth_transactions` table for failed transactions
+3. Ensure redirect URI matches the registered OAuth app callback
+4. PKCE: verify code challenge method is `S256`
 
-**Solution**:
-1. Verify environment variables
-2. Check Supabase project status
-3. Verify RLS policies are correct
-4. Check CORS settings in Supabase
+#### Webhook Deliveries Failing
 
-### Performance Issues
+1. Check `webhook_deliveries` for `response_code` and `response_body`
+2. Verify target URL is reachable from the backend
+3. Check HMAC signature verification on the consumer side
+4. Review retry backoff: attempts at 1s, 2s, 4s intervals
 
-**Issue**: Slow initial load
+#### Rate Limiting Triggered
 
-**Solution**:
-- Enable code splitting
-- Implement lazy loading
-- Use CDN for assets
-- Enable gzip compression
+The `execute-tool` function enforces:
+- **30 requests per 60 seconds** per user
+- **100 requests per 60 seconds** per connector
 
-**Issue**: Large bundle size
-
-**Solution**:
-```typescript
-// vite.config.ts
-export default defineConfig({
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          supabase: ['@supabase/supabase-js'],
-        },
-      },
-    },
-  },
-});
-```
+Response includes `X-RateLimit-Remaining` and `Retry-After` headers. The in-memory rate limiter resets on cold start.
 
 ---
 
-## Security Checklist
+## CI/CD Pipeline
 
-Before going to production:
+The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs on every push:
 
-- [ ] HTTPS enabled
-- [ ] Environment variables secured
-- [ ] Supabase RLS policies tested
-- [ ] CORS configured correctly
-- [ ] Rate limiting implemented (when available)
-- [ ] Security headers configured
-- [ ] Dependencies audited (`npm audit`)
-- [ ] Secrets rotated
-- [ ] Backup strategy in place
-- [ ] Monitoring and alerting configured
+| Step | Command | Purpose |
+|---|---|---|
+| Lint | `npx eslint .` | Code quality |
+| Type Check | `npx tsc --noEmit` | Type safety |
+| Security | `npm audit` | Dependency vulnerabilities |
+| Test | `npx vitest run` | Unit and integration tests |
+| Lighthouse | Lighthouse CI | Performance auditing |
 
----
-
-## Rollback Strategy
-
-### Vercel
-
-```bash
-# List deployments
-vercel ls
-
-# Rollback to specific deployment
-vercel rollback [deployment-url]
-```
-
-### Netlify
-
-1. Go to "Deploys" tab
-2. Find previous successful deploy
-3. Click "Publish deploy"
-
-### Docker
-
-```bash
-# Tag current version
-docker tag tool-connect-craft:latest tool-connect-craft:v1.0
-
-# Rollback to previous version
-docker run -d -p 80:80 tool-connect-craft:v0.9
-```
-
----
-
-## Continuous Deployment
-
-### GitHub Actions Example
-
-Create `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy to Production
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Build
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-          
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-```
+Production deployments are triggered automatically by Lovable Cloud on code push to the main branch.
 
 ---
 
 ## Support
 
-For deployment issues:
-- Check [documentation](../README.md)
-- Search [GitHub Issues](https://github.com/Krosebrook/tool-connect-craft/issues)
-- Ask in [Discussions](https://github.com/Krosebrook/tool-connect-craft/discussions)
+- [Project Documentation](../README.md)
+- [Architecture Guide](./ARCHITECTURE.md)
+- [Edge Functions Reference](./EDGE_FUNCTIONS.md)
+- [Security Policy](./SECURITY.md)
+- [API Reference](./API.md)
