@@ -4,12 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
-import type { ReactNode } from 'react';
-import React from 'react';
-
-// We need to test the hook's logic without full Supabase integration
-// So we'll test the utility functions and mock responses
+import { renderHook, act, waitFor } from '@testing-library/react';
 
 describe('useConnectorData - mocked tests', () => {
   beforeEach(() => {
@@ -22,12 +17,14 @@ describe('useConnectorData - mocked tests', () => {
   });
 
   it('hook returns expected shape', async () => {
-    // Import dynamically to allow mocks to be set up first
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
-    // Check initial state shape
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(result.current).toHaveProperty('connectors');
     expect(result.current).toHaveProperty('tools');
     expect(result.current).toHaveProperty('connections');
@@ -45,42 +42,63 @@ describe('useConnectorData - mocked tests', () => {
 
   it('connectors is initially an empty array', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(Array.isArray(result.current.connectors)).toBe(true);
   });
 
   it('tools is initially an empty Map', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(result.current.tools).toBeInstanceOf(Map);
   });
 
-  it('loading is initially true', async () => {
+  it('loading transitions from true to false', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    // Initially loading
     expect(result.current.loading).toBe(true);
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
   });
 
   it('getToolsForConnector returns empty array for unknown connector', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     const tools = result.current.getToolsForConnector('unknown-id');
     expect(tools).toEqual([]);
   });
 
   it('getConnectorWithConnection returns undefined for unknown connector', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     const connectorData = result.current.getConnectorWithConnection('unknown-slug');
     expect(connectorData).toBe(undefined);
   });
@@ -89,33 +107,49 @@ describe('useConnectorData - mocked tests', () => {
 describe('useConnectorData - method signatures', () => {
   it('connect is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(typeof result.current.connect).toBe('function');
   });
 
   it('disconnect is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(typeof result.current.disconnect).toBe('function');
   });
 
   it('executeTool is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(typeof result.current.executeTool).toBe('function');
   });
 
   it('fetchEventsForJob is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
-    
+
     const { result } = renderHook(() => useConnectorData());
-    
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     expect(typeof result.current.fetchEventsForJob).toBe('function');
   });
 });
