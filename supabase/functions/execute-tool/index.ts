@@ -3,8 +3,30 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Helper to extract and validate user from JWT
+async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | null; error?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { userId: null, error: "Missing or invalid Authorization header" };
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data, error } = await userClient.auth.getClaims(token);
+  if (error || !data?.claims?.sub) {
+    return { userId: null, error: "Invalid or expired token" };
+  }
+
+  return { userId: data.claims.sub as string };
+}
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -19,7 +41,6 @@ interface ExecuteToolRequest {
   connectorId: string;
   toolName: string;
   args: Record<string, unknown>;
-  userId: string;
 }
 
 interface ToolSchema {
@@ -336,17 +357,26 @@ Deno.serve(async (req) => {
   const supabase = getSupabaseClient();
 
   try {
-    const body: ExecuteToolRequest = await req.json();
-    const { jobId, connectorId, toolName, args, userId } = body;
+    // Authenticate user from JWT
+    const { userId, error: authError } = await getAuthenticatedUserId(req);
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: authError || "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    console.log(`Execute tool request: job=${jobId}, tool=${toolName}`);
+    const body: ExecuteToolRequest = await req.json();
+    const { jobId, connectorId, toolName, args } = body;
+
+    console.log(`Execute tool request: job=${jobId}, tool=${toolName}, user=${userId}`);
 
     // Validate required fields
-    if (!jobId || !connectorId || !toolName || !userId) {
+    if (!jobId || !connectorId || !toolName) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Missing required fields: jobId, connectorId, toolName, userId",
+          error: "Missing required fields: jobId, connectorId, toolName",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

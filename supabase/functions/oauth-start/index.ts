@@ -4,8 +4,27 @@ import { encode as base64Encode } from "https://deno.land/std@0.208.0/encoding/b
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Helper to extract and validate user from JWT
+async function getAuthenticatedUserId(req: Request): Promise<{ userId: string | null; error?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { userId: null, error: "Missing or invalid Authorization header" };
+  }
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const token = authHeader.replace("Bearer ", "");
+  const { data, error } = await userClient.auth.getClaims(token);
+  if (error || !data?.claims?.sub) {
+    return { userId: null, error: "Invalid or expired token" };
+  }
+  return { userId: data.claims.sub as string };
+}
 
 interface OAuthConfig {
   authUrl: string;
@@ -102,17 +121,26 @@ Deno.serve(async (req) => {
   const supabase = getSupabaseClient();
 
   try {
-    const body: StartOAuthRequest = await req.json();
-    const { connectorId, userId, redirectUri } = body;
+    // Authenticate user from JWT
+    const { userId, error: authError } = await getAuthenticatedUserId(req);
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: authError || "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const body = await req.json();
+    const { connectorId, redirectUri } = body;
 
     console.log(`OAuth start request: connector=${connectorId}, user=${userId}`);
 
     // Validate required fields
-    if (!connectorId || !userId || !redirectUri) {
+    if (!connectorId || !redirectUri) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Missing required fields: connectorId, userId, redirectUri",
+          error: "Missing required fields: connectorId, redirectUri",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

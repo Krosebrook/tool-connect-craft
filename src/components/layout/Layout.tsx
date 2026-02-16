@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 import { 
   Plug2, 
   LayoutDashboard, 
@@ -13,7 +14,8 @@ import {
   Bell,
   Server,
   Store,
-  BookOpen
+  BookOpen,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -34,6 +36,7 @@ const navItems = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   return (
@@ -94,6 +97,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <p>All connectors and services are healthy</p>
               </TooltipContent>
             </Tooltip>
+
+            {user && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground" onClick={signOut}>
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline text-xs">{user.email}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sign out</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             
             {/* Mobile menu button */}
             <Button
