@@ -1,395 +1,164 @@
 # Roadmap
 
-**Tool Connect Craft** - Product Roadmap from MVP to V1.0+
+**MCP Connector Hub** — Product Roadmap
 
 ---
 
-## Current Status: v0.1 MVP (December 2024)
+## Current Status: Production (February 2026)
 
-✅ **Completed**:
-- Core authentication system
-- Connector registry and management
-- User connections with OAuth foundation
-- Real-time pipeline jobs
-- Basic audit logging
-- Modern React + TypeScript frontend
-- Supabase backend integration
-- Row-Level Security implementation
+### ✅ Completed Features
 
----
+**Core Platform**
+- [x] Connector registry with 8 pre-configured services (GitHub, Slack, Gmail, Notion, etc.)
+- [x] Tool catalog with JSON schema validation
+- [x] User connections with status tracking (pending/active/expired/revoked/error)
+- [x] Real-time pipeline job execution with event streaming
+- [x] Audit logging with latency metrics
 
-## Short-Term: v0.2 - v0.4 (Q1 2025)
+**Authentication & Security**
+- [x] OAuth 2.0 PKCE flow via Edge Functions (`oauth-start`, `oauth-callback`)
+- [x] AES-GCM token encryption at rest
+- [x] Automatic token refresh (pg_cron, 5-minute intervals)
+- [x] Row-Level Security on all 11 tables
+- [x] HMAC-SHA256 webhook signature verification
 
-**Focus**: Stability, Testing, and Core Features
+**Edge Functions (8 deployed)**
+- [x] `execute-tool` — Tool execution engine with job lifecycle
+- [x] `oauth-start` — PKCE challenge generation + authorization URL
+- [x] `oauth-callback` — Token exchange + encrypted storage
+- [x] `token-refresh` — Automatic renewal of expired tokens
+- [x] `health-check` — Connector availability monitoring
+- [x] `send-webhook` — Delivery with exponential backoff (1s/2s/4s)
+- [x] `test-webhook` — Endpoint validation
+- [x] `retry-webhook` — Manual + bulk retry for failed deliveries
+- [x] `send-health-alert` — Critical email alerts via Resend (15-min cooldown)
 
-### v0.2 - Testing & Quality (January 2025)
+**Webhook System**
+- [x] Full CRUD (create, edit, delete) with reusable form dialog
+- [x] Event subscription (connection.active, job.completed, etc.)
+- [x] Delivery history with event/status filtering
+- [x] 7-day performance stats chart
+- [x] Payload template with live JSON validation
 
-**Testing Infrastructure**
-- [ ] Set up Vitest for unit testing
-- [ ] Add React Testing Library for component tests
-- [ ] Set up Playwright for E2E tests
-- [ ] Achieve 60%+ code coverage
-- [ ] Add CI/CD pipeline (GitHub Actions)
-  - Automated tests on PR
-  - Build validation
-  - Deployment to staging
+**Monitoring & Notifications**
+- [x] Health check dashboard with status indicators
+- [x] Token expiry banner (alerts for tokens expiring within 1 hour)
+- [x] Notification preferences (email, push, webhook channels)
+- [x] Quiet hours configuration
+- [x] Browser push notifications for health alerts
 
-**Bug Fixes & Stability**
-- [ ] Fix edge cases in OAuth flow
-- [ ] Improve error handling and user feedback
-- [ ] Add loading states for all async operations
-- [ ] Implement proper error boundaries
-- [ ] Add retry logic for failed API calls
+**Scheduler**
+- [x] Cron job management UI at `/scheduler`
+- [x] Manual trigger, pause, resume controls
+- [x] Run history with error tracking
 
 **Developer Experience**
-- [ ] Set up Prettier for code formatting
-- [ ] Add pre-commit hooks (Husky)
-- [ ] Create issue templates
-- [ ] Add PR template with checklist
-- [ ] Document deployment process
-
-### v0.3 - Real OAuth Implementation (February 2025)
-
-**OAuth 2.0 PKCE Flow**
-- [ ] Complete OAuth callback handler
-- [ ] Implement state verification
-- [ ] Add code exchange logic
-- [ ] Implement token refresh mechanism
-- [ ] Add token expiration handling
-- [ ] Support for multiple OAuth providers:
-  - [ ] GitHub
-  - [ ] Google
-  - [ ] Slack
-  - [ ] Linear
-
-**Secret Management**
-- [ ] Integrate Supabase Vault
-- [ ] Encrypt secrets at rest
-- [ ] Implement secret rotation
-- [ ] Add secret access audit logging
-
-**Security Enhancements**
-- [ ] Add CSRF protection
-- [ ] Implement rate limiting (basic)
-- [ ] Add request signing
-- [ ] Security headers (CSP, HSTS)
-- [ ] Dependency vulnerability scanning
-
-### v0.4 - Job Execution Engine (March 2025)
-
-**Background Job Processing**
-- [ ] Implement real job queue (BullMQ or similar)
-- [ ] Add job retry logic with exponential backoff
-- [ ] Implement job timeout handling
-- [ ] Add job cancellation
-- [ ] Support for job scheduling (cron)
-
-**Tool Execution**
-- [ ] Implement actual REST API calls
-- [ ] Add parameter validation
-- [ ] Implement response transformation
-- [ ] Add execution logging
-- [ ] Support for long-running jobs (>30s)
-
-**Monitoring**
-- [ ] Add basic metrics collection
-- [ ] Implement health check endpoint
-- [ ] Add performance monitoring
-- [ ] Set up error tracking (Sentry)
-- [ ] Create basic dashboard for system health
+- [x] CI/CD via GitHub Actions (lint, type-check, test, build, Lighthouse)
+- [x] Vitest test suite with React Testing Library
+- [x] Zod-based input validation
+- [x] Route-based code splitting (React.lazy + Suspense)
+- [x] PWA support (service worker, manifest, icon set)
+- [x] Comprehensive documentation suite
 
 ---
 
-## Mid-Term: v0.5 - v0.9 (Q2-Q3 2025)
+## Next: v1.1 — Connector Ecosystem Expansion
 
-**Focus**: Feature Expansion, Integrations, and UX
+**Focus**: More integrations and developer tooling
 
-### v0.5 - Connector Ecosystem (April 2025)
-
-**Pre-built Connectors**
-- [ ] GitHub integration
-  - Repository management
-  - Issue creation
-  - PR operations
-- [ ] Slack integration
-  - Send messages
-  - Create channels
-  - User management
-- [ ] Linear integration
-  - Issue creation
-  - Project management
-  - Team operations
-- [ ] Notion integration
-  - Page creation
-  - Database queries
-  - Content updates
-
-**Connector SDK**
-- [ ] Create connector development kit
-- [ ] Add connector validation
-- [ ] Implement connector versioning
-- [ ] Add connector marketplace (basic)
-- [ ] Documentation for connector developers
-
-### v0.6 - Advanced Features (May 2025)
-
-**Rate Limiting**
-- [ ] Per-user rate limits
-- [ ] Per-connector rate limits
-- [ ] Token bucket algorithm
-- [ ] Rate limit dashboard
-- [ ] Configurable limits per plan
-
-**Circuit Breaker**
-- [ ] Implement circuit breaker pattern
-- [ ] Add failure detection
-- [ ] Automatic recovery
-- [ ] Circuit breaker status UI
-- [ ] Alerting on circuit open
-
-**Webhooks**
-- [ ] Webhook endpoint creation
-- [ ] Event subscription system
-- [ ] Webhook verification
-- [ ] Retry logic for failed webhooks
-- [ ] Webhook logs and debugging
-
-### v0.7 - UX Improvements (June 2025)
-
-**Enhanced UI/UX**
-- [ ] Redesign dashboard with metrics
-- [ ] Add search and filtering
-- [ ] Implement dark mode
-- [ ] Add keyboard shortcuts
-- [ ] Improve mobile responsiveness
-- [ ] Add onboarding flow
-- [ ] Interactive tutorials
-
-**Notifications**
-- [ ] In-app notifications
-- [ ] Email notifications
-- [ ] Notification preferences
-- [ ] Digest emails (daily/weekly)
-
-**Documentation**
+- [ ] Pre-built connectors: Google Drive, Jira, Linear, Trello
+- [ ] Connector SDK for third-party developers
+- [ ] Connector versioning and update management
+- [ ] Connector marketplace (basic listing)
 - [ ] Interactive API documentation
-- [ ] Video tutorials
-- [ ] Use case examples
-- [ ] Troubleshooting guides
 
-### v0.8 - MCP Protocol Support (July 2025)
+---
 
-**MCP Integration**
-- [ ] MCP protocol implementation
-- [ ] WebSocket support for MCP servers
-- [ ] MCP server discovery
+## v1.2 — Advanced Reliability
+
+**Focus**: Production hardening
+
+- [ ] Circuit breaker pattern for failing connectors
+- [ ] Per-user and per-connector rate limiting with dashboard
+- [ ] Job timeout handling and cancellation
+- [ ] Distributed job queue (BullMQ or equivalent)
+- [ ] Error tracking integration (Sentry)
+
+---
+
+## v1.3 — Analytics & Insights
+
+**Focus**: Visibility into platform usage
+
+- [ ] Usage statistics dashboard (calls, latency, error rates)
+- [ ] Cost analysis per connector
+- [ ] Popular tools/connectors ranking
+- [ ] Export reports (CSV, JSON)
+- [ ] Scheduled report delivery
+
+---
+
+## v1.4 — MCP Protocol Support
+
+**Focus**: Native Model Context Protocol integration
+
+- [ ] MCP server discovery and registration
+- [ ] WebSocket transport for MCP communication
 - [ ] Protocol version negotiation
 - [ ] Streaming response handling
-
-**MCP Connectors**
-- [ ] File system MCP connector
-- [ ] Database MCP connector
-- [ ] Custom MCP server support
-- [ ] MCP server registry
-
-### v0.9 - Analytics & Insights (August 2025)
-
-**Analytics Dashboard**
-- [ ] Usage statistics
-- [ ] Performance metrics
-- [ ] Cost analysis
-- [ ] Error rate tracking
-- [ ] Popular connectors/tools
-- [ ] User activity timeline
-
-**Reporting**
-- [ ] Generate usage reports
-- [ ] Export data (CSV, JSON)
-- [ ] Custom report builder
-- [ ] Scheduled reports
+- [ ] File system and database MCP connectors
 
 ---
 
-## Long-Term: v1.0+ (Q4 2025 and Beyond)
+## v2.0 — Team Collaboration & AI Agents
 
-**Focus**: Scale, Performance, and Enterprise Features
+**Focus**: Multi-user and autonomous workflows
 
-### v1.0 - Production Release (September 2025)
-
-**Performance Optimization**
-- [ ] Database query optimization
-- [ ] Implement caching layer (Redis)
-- [ ] CDN for static assets
-- [ ] Code splitting and lazy loading
-- [ ] Service worker for offline support
-
-**Scalability**
-- [ ] Database read replicas
-- [ ] Horizontal scaling support
-- [ ] Load balancing
-- [ ] Distributed job processing
-- [ ] Multi-region support (future)
-
-**Documentation**
-- [ ] Complete API reference
-- [ ] Architecture deep-dives
-- [ ] Security best practices
-- [ ] Compliance documentation
-- [ ] Migration guides
-
-**Compliance**
-- [ ] SOC 2 preparation
-- [ ] GDPR compliance
-- [ ] Data export functionality
-- [ ] Right to deletion
-- [ ] Privacy policy and terms
-
-### v1.1 - Team Collaboration (Q4 2025)
-
-**Multi-Tenant Support**
-- [ ] Organization accounts
-- [ ] Team management
+- [ ] Organization accounts with team management
 - [ ] Role-based access control (RBAC)
-- [ ] Shared connectors
-- [ ] Team activity logs
+- [ ] Shared connectors and workspaces
+- [ ] AI agent integration (Claude, GPT-4) via MCP tool calling
+- [ ] Multi-step workflow builder with visual editor
+- [ ] Agent templates and orchestration
 
-**Collaboration Features**
-- [ ] Shared workspaces
-- [ ] Connector sharing
-- [ ] Activity feed
-- [ ] Comments and annotations
-- [ ] @mentions
+---
 
-### v1.2 - AI Agent Integration (Q4 2025)
+## v2.1 — Enterprise Features
 
-**AI Capabilities**
-- [ ] Claude integration
-- [ ] GPT-4 integration
-- [ ] Tool calling via MCP
-- [ ] Conversation history
-- [ ] Context management
-- [ ] Agent orchestration
+**Focus**: Enterprise readiness
 
-**Autonomous Agents**
-- [ ] Agent templates
-- [ ] Multi-step workflows
-- [ ] Decision trees
-- [ ] Agent monitoring
-- [ ] Human-in-the-loop approval
-
-### v1.3 - Enterprise Features (Q1 2026)
-
-**Enterprise Security**
 - [ ] SSO integration (SAML, OIDC)
-- [ ] Advanced audit logging
-- [ ] Compliance reports
+- [ ] Advanced audit log export and retention
 - [ ] IP whitelisting
 - [ ] Custom encryption keys
-
-**Advanced Management**
-- [ ] Usage quotas
-- [ ] Billing integration
-- [ ] Invoice generation
-- [ ] Custom SLA support
-- [ ] Priority support
-
-**Deployment Options**
-- [ ] Self-hosted version
-- [ ] Docker/Kubernetes support
-- [ ] Air-gapped deployment
-- [ ] Hybrid cloud support
-
-### v2.0 - Marketplace & Ecosystem (Q2 2026)
-
-**Connector Marketplace**
-- [ ] Public marketplace
-- [ ] Connector ratings and reviews
-- [ ] Paid connectors support
-- [ ] Revenue sharing
-- [ ] Connector analytics
-
-**Developer Platform**
-- [ ] API for third-party apps
-- [ ] Webhook marketplace
-- [ ] Template library
-- [ ] Developer portal
-- [ ] App review process
-
-**Workflow Builder**
-- [ ] Visual workflow editor
-- [ ] Conditional logic
-- [ ] Loops and iterations
-- [ ] Error handling flows
-- [ ] Workflow templates
-
----
-
-## Feature Requests & Community Input
-
-We welcome feature requests! Submit ideas via:
-- GitHub Issues with `feature-request` label
-- GitHub Discussions
-- Community Discord (coming soon)
-
-### Top Community Requests
-
-_(Will be populated based on user feedback)_
-
-1. TBD
-2. TBD
-3. TBD
+- [ ] SOC 2 and GDPR compliance
+- [ ] Self-hosted deployment (Docker/Kubernetes)
 
 ---
 
 ## Research & Exploration
 
-**Areas of Interest** (no commitment):
+Areas of interest (no commitment):
 - GraphQL API layer
 - gRPC for internal communication
 - Event sourcing architecture
-- CQRS pattern for complex workflows
-- Blockchain for audit trail (immutability)
 - Edge computing for low-latency execution
-
----
-
-## Version Numbering
-
-We follow [Semantic Versioning](https://semver.org/):
-- **Major** (1.0.0): Breaking changes
-- **Minor** (0.1.0): New features, backward compatible
-- **Patch** (0.0.1): Bug fixes, backward compatible
-
----
-
-## Release Schedule
-
-- **Minor releases**: Monthly (0.x.0)
-- **Patch releases**: As needed for critical bugs
-- **Major releases**: When breaking changes are necessary
 
 ---
 
 ## Contributing to the Roadmap
 
-Want to influence our direction?
 1. Star the repository to show interest
 2. Comment on roadmap issues
 3. Submit PRs for features you'd like to see
-4. Share your use cases in Discussions
+4. Share use cases in GitHub Discussions
 
 ---
 
 ## Disclaimer
 
-This roadmap is a living document and subject to change based on:
-- User feedback and priorities
-- Technical constraints
-- Market conditions
-- Team capacity
-
-Features may be added, removed, or re-prioritized without notice.
+This roadmap is a living document subject to change based on user feedback, technical constraints, and team capacity. Features may be re-prioritized without notice.
 
 ---
 
-**Last Updated**: December 29, 2024
+**Last Updated**: February 2026
