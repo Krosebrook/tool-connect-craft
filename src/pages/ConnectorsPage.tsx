@@ -160,7 +160,7 @@ export default function ConnectorsPage() {
                 </TooltipContent>
               </Tooltip>
             </div>
-            <div className={cn(
+            <div key={`oauth-${category}-${search}`} className={cn(
               viewMode === 'grid' 
                 ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
                 : 'space-y-4'
@@ -173,7 +173,8 @@ export default function ConnectorsPage() {
                 return (
                   <div 
                     key={connector.id}
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    className="animate-fade-in opacity-0"
+                    style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'forwards' }}
                   >
                     <OAuthConnectorCard
                       connector={connector}
@@ -199,7 +200,7 @@ export default function ConnectorsPage() {
             {oauthConnectors.length > 0 && (
               <h2 className="text-lg font-semibold text-foreground mb-4">Other Integrations</h2>
             )}
-            <div className={cn(
+            <div key={`other-${category}-${search}`} className={cn(
               viewMode === 'grid' 
                 ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
                 : 'space-y-4'
@@ -211,7 +212,8 @@ export default function ConnectorsPage() {
                 return (
                   <div 
                     key={connector.id}
-                    style={{ animationDelay: `${(oauthConnectors.length + index) * 50}ms` }}
+                    className="animate-fade-in opacity-0"
+                    style={{ animationDelay: `${(oauthConnectors.length + index) * 75}ms`, animationFillMode: 'forwards' }}
                   >
                     <OAuthConnectorCard
                       connector={connector}
