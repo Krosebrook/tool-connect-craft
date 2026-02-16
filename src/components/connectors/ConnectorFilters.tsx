@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { CONNECTOR_CATEGORIES } from '@/types/seed-data';
-import { Search, Grid3X3, List } from 'lucide-react';
+import { Search, Grid3X3, List, X } from 'lucide-react';
 
 interface ConnectorFiltersProps {
   search: string;
@@ -52,11 +52,25 @@ export function ConnectorFilters({
                   inputRef.current?.blur();
                 }
               }}
-              className="pl-10 pr-16"
+              className={`pl-10 ${search ? 'pr-8' : 'pr-16'}`}
             />
-            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-              ⌘K
-            </kbd>
+            {search ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onSearchChange('');
+                  inputRef.current?.focus();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : (
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                ⌘K
+              </kbd>
+            )}
           </div>
         </TooltipTrigger>
         <TooltipContent>
