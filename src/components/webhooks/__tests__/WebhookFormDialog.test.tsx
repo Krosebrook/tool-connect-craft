@@ -20,8 +20,8 @@ describe('WebhookFormDialog', () => {
 
   describe('Create mode', () => {
     it('renders create title and description', () => {
-      const { getByText } = renderDialog();
-      expect(getByText('Create Webhook')).toBeInTheDocument();
+      const { getByRole, getByText } = renderDialog();
+      expect(getByRole('heading', { name: 'Create Webhook' })).toBeInTheDocument();
       expect(getByText(/Configure a new webhook endpoint/)).toBeInTheDocument();
     });
 
@@ -101,9 +101,10 @@ describe('WebhookFormDialog', () => {
     });
 
     it('pre-fills payload template as formatted JSON', () => {
-      const { getByDisplayValue } = renderDialog({ webhook: existingWebhook });
+      const { getByLabelText } = renderDialog({ webhook: existingWebhook });
+      const textarea = getByLabelText(/payload template/i);
       const expectedJson = JSON.stringify(existingWebhook.payload_template, null, 2);
-      expect(getByDisplayValue(expectedJson)).toBeInTheDocument();
+      expect(textarea).toHaveValue(expectedJson);
     });
   });
 
