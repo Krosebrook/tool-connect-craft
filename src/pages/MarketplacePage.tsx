@@ -8,6 +8,7 @@ import { ConnectorIcon } from '@/components/connectors/ConnectorIcon';
 import { useConnectors } from '@/context/ConnectorContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 import { 
   Search, 
   Download, 
@@ -16,10 +17,11 @@ import {
   Users, 
   ArrowRight,
   Sparkles,
-  Filter
+  Filter,
+  Eye
 } from 'lucide-react';
 
-interface MarketplaceConnector {
+export interface MarketplaceConnector {
   slug: string;
   name: string;
   description: string;
@@ -34,7 +36,7 @@ interface MarketplaceConnector {
   tools: { name: string; description: string; schema: Record<string, unknown> }[];
 }
 
-const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
+export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
   {
     slug: 'slack',
     name: 'Slack',
@@ -439,7 +441,11 @@ export default function MarketplacePage() {
                   <div className="flex items-start gap-3">
                     <ConnectorIcon slug={connector.slug} name={connector.name} className="h-10 w-10 shrink-0" />
                     <div className="min-w-0">
-                      <CardTitle className="text-base">{connector.name}</CardTitle>
+                      <CardTitle className="text-base">
+                        <Link to={`/marketplace/${connector.slug}`} className="hover:underline">
+                          {connector.name}
+                        </Link>
+                      </CardTitle>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="outline" className="text-xs font-normal">
                           {connector.category}
@@ -486,27 +492,33 @@ export default function MarketplacePage() {
                     ))}
                   </div>
 
-                  {/* Action */}
-                  <Button
-                    className="w-full"
-                    variant={isInstalled ? 'outline' : 'glow'}
-                    disabled={isInstalled || isInstalling}
-                    onClick={() => handleInstall(connector)}
-                  >
-                    {isInstalling ? (
-                      <>Installing...</>
-                    ) : isInstalled ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Already installed
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4" />
-                        Install
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      variant={isInstalled ? 'outline' : 'glow'}
+                      disabled={isInstalled || isInstalling}
+                      onClick={() => handleInstall(connector)}
+                    >
+                      {isInstalling ? (
+                        <>Installing...</>
+                      ) : isInstalled ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Installed
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          Install
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="outline" size="icon" asChild>
+                      <Link to={`/marketplace/${connector.slug}`}>
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
