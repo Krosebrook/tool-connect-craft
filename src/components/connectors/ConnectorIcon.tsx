@@ -16,6 +16,10 @@ import {
   BarChart3,
   Users,
   ClipboardList,
+  CreditCard,
+  Phone,
+  Send,
+  Columns3,
 } from 'lucide-react';
 
 interface ConnectorIconProps {
@@ -39,6 +43,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'zendesk': Headphones,
   'shopify': ShoppingCart,
   'jira': ClipboardList,
+  'stripe': CreditCard,
+  'twilio': Phone,
+  'sendgrid': Send,
+  'linear': Columns3,
 };
 
 const colorMap: Record<string, string> = {
@@ -56,6 +64,10 @@ const colorMap: Record<string, string> = {
   'zendesk': 'text-emerald-400 bg-emerald-400/10',
   'shopify': 'text-green-500 bg-green-500/10',
   'jira': 'text-blue-500 bg-blue-500/10',
+  'stripe': 'text-violet-500 bg-violet-500/10',
+  'twilio': 'text-red-500 bg-red-500/10',
+  'sendgrid': 'text-blue-400 bg-blue-400/10',
+  'linear': 'text-indigo-400 bg-indigo-400/10',
 };
 
 export function ConnectorIcon({ slug, name, className }: ConnectorIconProps) {

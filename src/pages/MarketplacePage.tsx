@@ -284,9 +284,75 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
       { name: 'search_files', description: 'Search for files', schema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
     ],
   },
+  {
+    slug: 'stripe',
+    name: 'Stripe',
+    description: 'Manage payments, subscriptions, customers, invoices, and financial reporting.',
+    category: 'Payments',
+    authType: 'api_key',
+    tags: ['payments', 'billing', 'subscriptions', 'invoices'],
+    popularity: 5,
+    toolCount: 5,
+    tools: [
+      { name: 'list_customers', description: 'List customers', schema: { type: 'object', properties: { limit: { type: 'number', default: 10 }, email: { type: 'string', description: 'Filter by email' } } } },
+      { name: 'create_customer', description: 'Create a new customer', schema: { type: 'object', properties: { email: { type: 'string' }, name: { type: 'string' }, description: { type: 'string' } }, required: ['email'] } },
+      { name: 'create_payment_intent', description: 'Create a payment intent', schema: { type: 'object', properties: { amount: { type: 'number', description: 'Amount in cents' }, currency: { type: 'string', default: 'usd' }, customer: { type: 'string' } }, required: ['amount', 'currency'] } },
+      { name: 'list_subscriptions', description: 'List active subscriptions', schema: { type: 'object', properties: { customer: { type: 'string' }, status: { type: 'string', enum: ['active', 'past_due', 'canceled', 'all'] }, limit: { type: 'number', default: 10 } } } },
+      { name: 'create_invoice', description: 'Create a draft invoice', schema: { type: 'object', properties: { customer: { type: 'string' }, auto_advance: { type: 'boolean', default: false } }, required: ['customer'] } },
+    ],
+  },
+  {
+    slug: 'twilio',
+    name: 'Twilio',
+    description: 'Send SMS, make calls, manage phone numbers, and build communication workflows.',
+    category: 'Communication',
+    authType: 'api_key',
+    tags: ['sms', 'voice', 'phone', 'messaging'],
+    popularity: 4,
+    toolCount: 4,
+    tools: [
+      { name: 'send_sms', description: 'Send an SMS message', schema: { type: 'object', properties: { to: { type: 'string', description: 'Recipient phone number' }, from: { type: 'string', description: 'Twilio phone number' }, body: { type: 'string', description: 'Message body' } }, required: ['to', 'from', 'body'] } },
+      { name: 'list_messages', description: 'List sent/received messages', schema: { type: 'object', properties: { limit: { type: 'number', default: 20 }, to: { type: 'string' }, from: { type: 'string' } } } },
+      { name: 'make_call', description: 'Initiate an outbound call', schema: { type: 'object', properties: { to: { type: 'string' }, from: { type: 'string' }, url: { type: 'string', description: 'TwiML URL for call instructions' } }, required: ['to', 'from', 'url'] } },
+      { name: 'list_phone_numbers', description: 'List your Twilio phone numbers', schema: { type: 'object', properties: { limit: { type: 'number', default: 20 } } } },
+    ],
+  },
+  {
+    slug: 'sendgrid',
+    name: 'SendGrid',
+    description: 'Send transactional and marketing emails, manage contacts, and track deliveries.',
+    category: 'Communication',
+    authType: 'api_key',
+    tags: ['email', 'transactional', 'marketing', 'newsletters'],
+    popularity: 4,
+    toolCount: 4,
+    tools: [
+      { name: 'send_email', description: 'Send a transactional email', schema: { type: 'object', properties: { to: { type: 'string' }, from: { type: 'string' }, subject: { type: 'string' }, html: { type: 'string', description: 'HTML body' }, text: { type: 'string', description: 'Plain text body' } }, required: ['to', 'from', 'subject'] } },
+      { name: 'list_contacts', description: 'List marketing contacts', schema: { type: 'object', properties: { page_size: { type: 'number', default: 50 } } } },
+      { name: 'add_contact', description: 'Add or update a contact', schema: { type: 'object', properties: { email: { type: 'string' }, first_name: { type: 'string' }, last_name: { type: 'string' } }, required: ['email'] } },
+      { name: 'get_stats', description: 'Get email delivery statistics', schema: { type: 'object', properties: { start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string' } }, required: ['start_date'] } },
+    ],
+  },
+  {
+    slug: 'linear',
+    name: 'Linear',
+    description: 'Manage issues, projects, cycles, and team workflows for modern software development.',
+    category: 'Project Management',
+    authType: 'api_key',
+    tags: ['issues', 'project-management', 'agile', 'engineering'],
+    popularity: 4,
+    toolCount: 5,
+    tools: [
+      { name: 'list_issues', description: 'List issues with optional filters', schema: { type: 'object', properties: { teamId: { type: 'string' }, status: { type: 'string' }, assigneeId: { type: 'string' }, limit: { type: 'number', default: 25 } } } },
+      { name: 'create_issue', description: 'Create a new issue', schema: { type: 'object', properties: { title: { type: 'string' }, description: { type: 'string' }, teamId: { type: 'string' }, priority: { type: 'number', description: '0=None, 1=Urgent, 2=High, 3=Medium, 4=Low' }, assigneeId: { type: 'string' } }, required: ['title', 'teamId'] } },
+      { name: 'update_issue', description: 'Update an existing issue', schema: { type: 'object', properties: { issueId: { type: 'string' }, title: { type: 'string' }, status: { type: 'string' }, priority: { type: 'number' } }, required: ['issueId'] } },
+      { name: 'list_projects', description: 'List projects', schema: { type: 'object', properties: { limit: { type: 'number', default: 25 } } } },
+      { name: 'list_cycles', description: 'List cycles for a team', schema: { type: 'object', properties: { teamId: { type: 'string' } }, required: ['teamId'] } },
+    ],
+  },
 ];
 
-const CATEGORIES = ['All', 'Communication', 'Development', 'Productivity', 'CRM', 'E-commerce', 'Project Management', 'Support', 'Database', 'Storage'];
+const CATEGORIES = ['All', 'Communication', 'Development', 'Productivity', 'CRM', 'Payments', 'E-commerce', 'Project Management', 'Support', 'Database', 'Storage'];
 
 export default function MarketplacePage() {
   const [search, setSearch] = useState('');
