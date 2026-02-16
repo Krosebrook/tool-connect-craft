@@ -43,6 +43,7 @@
 |----------|-------------|
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup, coding standards, project structure, and tooling configuration |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution workflow, PR templates, code review process, and community guidelines |
+| [TESTING.md](TESTING.md) | Test strategy, tooling (Vitest + Deno), writing tests, mocking, and CI integration |
 
 ---
 
