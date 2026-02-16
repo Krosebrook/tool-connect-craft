@@ -260,7 +260,7 @@ function StatCard({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="connector-card p-5 cursor-default">
+        <div className="connector-card p-5 cursor-default" tabIndex={0} role="status" aria-label={`${label}: ${value}. ${tooltip}`}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">{label}</span>
             <Icon className={`h-5 w-5 ${color} ${pulse ? 'pulse-live' : ''}`} />
