@@ -328,4 +328,5 @@ export const CONNECTOR_CATEGORIES = [
   { slug: 'storage', name: 'Storage', icon: 'HardDrive' },
   { slug: 'database', name: 'Database', icon: 'Database' },
   { slug: 'custom', name: 'Custom', icon: 'Puzzle' },
+  { slug: 'mcp', name: 'MCP', icon: 'Server' },
 ];
