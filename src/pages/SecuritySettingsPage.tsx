@@ -3,6 +3,7 @@ import { useConnectors } from '@/context/ConnectorContext';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { 
   Shield, 
   Key, 
@@ -73,27 +74,37 @@ export default function SecuritySettingsPage() {
             
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-border">
-                <div>
-                  <div className="font-medium text-foreground">Active Connections</div>
-                  <div className="text-sm text-muted-foreground">
-                    {activeConnections.length} connector{activeConnections.length !== 1 ? 's' : ''} currently connected
-                  </div>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Active Connections</div>
+                      <div className="text-sm text-muted-foreground">
+                        {activeConnections.length} connector{activeConnections.length !== 1 ? 's' : ''} currently connected
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>OAuth connections with valid access tokens</p></TooltipContent>
+                </Tooltip>
                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      disabled={activeConnections.length === 0 || revoking}
-                    >
-                      {revoking ? (
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 mr-2" />
-                      )}
-                      Revoke All
-                    </Button>
-                  </AlertDialogTrigger>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          disabled={activeConnections.length === 0 || revoking}
+                        >
+                          {revoking ? (
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
+                          Revoke All
+                        </Button>
+                      </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Disconnect all active connectors at once</p></TooltipContent>
+                  </Tooltip>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle className="flex items-center gap-2">
@@ -116,22 +127,32 @@ export default function SecuritySettingsPage() {
               </div>
               
               <div className="flex items-center justify-between py-3 border-b border-border">
-                <div>
-                  <div className="font-medium text-foreground">Auto-refresh Tokens</div>
-                  <div className="text-sm text-muted-foreground">
-                    Automatically refresh OAuth tokens before expiration
-                  </div>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Auto-refresh Tokens</div>
+                      <div className="text-sm text-muted-foreground">
+                        Automatically refresh OAuth tokens before expiration
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>When enabled, tokens are refreshed automatically before they expire to prevent disruptions</p></TooltipContent>
+                </Tooltip>
                 <Switch defaultChecked />
               </div>
               
               <div className="flex items-center justify-between py-3">
-                <div>
-                  <div className="font-medium text-foreground">Token Expiry Notifications</div>
-                  <div className="text-sm text-muted-foreground">
-                    Get notified when tokens are about to expire
-                  </div>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Token Expiry Notifications</div>
+                      <div className="text-sm text-muted-foreground">
+                        Get notified when tokens are about to expire
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Sends alerts when a token is within 1 hour of expiration</p></TooltipContent>
+                </Tooltip>
                 <Switch defaultChecked />
               </div>
             </div>
@@ -146,22 +167,32 @@ export default function SecuritySettingsPage() {
             
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-border">
-                <div>
-                  <div className="font-medium text-foreground">Session Timeout</div>
-                  <div className="text-sm text-muted-foreground">
-                    Automatically log out after 24 hours of inactivity
-                  </div>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Session Timeout</div>
+                      <div className="text-sm text-muted-foreground">
+                        Automatically log out after 24 hours of inactivity
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Ends your session after 24 hours without any activity for added security</p></TooltipContent>
+                </Tooltip>
                 <Switch defaultChecked />
               </div>
               
               <div className="flex items-center justify-between py-3">
-                <div>
-                  <div className="font-medium text-foreground">Single Session Mode</div>
-                  <div className="text-sm text-muted-foreground">
-                    Only allow one active session at a time
-                  </div>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Single Session Mode</div>
+                      <div className="text-sm text-muted-foreground">
+                        Only allow one active session at a time
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Signing in from another device will end the current session</p></TooltipContent>
+                </Tooltip>
                 <Switch />
               </div>
             </div>
@@ -176,33 +207,58 @@ export default function SecuritySettingsPage() {
             
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-border">
-                <div>
-                  <div className="font-medium text-foreground">Hide Request Data in Logs</div>
-                  <div className="text-sm text-muted-foreground">
-                    Redact sensitive data from action logs
-                  </div>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Hide Request Data in Logs</div>
+                      <div className="text-sm text-muted-foreground">
+                        Redact sensitive data from action logs
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Replaces request/response bodies with [REDACTED] in the audit log</p></TooltipContent>
+                </Tooltip>
                 <Switch defaultChecked />
               </div>
               
               <div className="flex items-center justify-between py-3 border-b border-border">
-                <div>
-                  <div className="font-medium text-foreground">Log Retention</div>
-                  <div className="text-sm text-muted-foreground">
-                    Keep action logs for 30 days
-                  </div>
-                </div>
-                <Button variant="outline" size="sm">Configure</Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Log Retention</div>
+                      <div className="text-sm text-muted-foreground">
+                        Keep action logs for 30 days
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Action logs older than 30 days are automatically purged</p></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm">Configure</Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Change log retention period</p></TooltipContent>
+                </Tooltip>
               </div>
               
               <div className="flex items-center justify-between py-3">
-                <div>
-                  <div className="font-medium text-foreground">Export Data</div>
-                  <div className="text-sm text-muted-foreground">
-                    Download all your connection and log data
-                  </div>
-                </div>
-                <Button variant="outline" size="sm">Export</Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Export Data</div>
+                      <div className="text-sm text-muted-foreground">
+                        Download all your connection and log data
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Download a JSON export of all connections, logs, and settings</p></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm">Export</Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Generate and download data export</p></TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -216,16 +272,26 @@ export default function SecuritySettingsPage() {
             
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3">
-                <div>
-                  <div className="font-medium text-foreground">Delete All Data</div>
-                  <div className="text-sm text-muted-foreground">
-                    Permanently delete all connections, logs, and settings
-                  </div>
-                </div>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete All
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-default">
+                      <div className="font-medium text-foreground">Delete All Data</div>
+                      <div className="text-sm text-muted-foreground">
+                        Permanently delete all connections, logs, and settings
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent><p>⚠️ This action is irreversible — all data will be permanently erased</p></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete All
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Permanently remove all stored data</p></TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>

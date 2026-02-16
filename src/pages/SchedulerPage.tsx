@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { 
   Clock, 
   Play, 
@@ -39,7 +40,7 @@ function parseSchedule(schedule: string): string {
   const parts = schedule.split(' ');
   if (parts.length !== 5) return schedule;
   
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+  const [minute, hour] = parts;
   
   if (minute.startsWith('*/')) {
     const interval = minute.substring(2);
@@ -86,7 +87,6 @@ export default function SchedulerPage() {
   useEffect(() => {
     fetchJobs();
 
-    // Subscribe to realtime updates
     const channel = supabase
       .channel('scheduler-jobs')
       .on(
@@ -128,7 +128,6 @@ export default function SchedulerPage() {
     setRunningJob(job.id);
 
     try {
-      // Update job status
       await supabase
         .from('scheduler_jobs')
         .update({ 
@@ -137,10 +136,8 @@ export default function SchedulerPage() {
         })
         .eq('id', job.id);
 
-      // Call the edge function
       const { error } = await supabase.functions.invoke(job.function_name);
 
-      // Update job with result
       await supabase
         .from('scheduler_jobs')
         .update({
@@ -190,41 +187,56 @@ export default function SchedulerPage() {
 
         {/* Stats */}
         <div className="grid sm:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Jobs</p>
-                  <p className="text-2xl font-bold">{jobs.length}</p>
-                </div>
-                <Calendar className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Jobs</p>
+                      <p className="text-2xl font-bold">{jobs.length}</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Total number of configured scheduled jobs</p></TooltipContent>
+          </Tooltip>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Jobs</p>
-                  <p className="text-2xl font-bold text-success">{activeJobs}</p>
-                </div>
-                <Zap className="h-8 w-8 text-success" />
-              </div>
-            </CardContent>
-          </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Active Jobs</p>
+                      <p className="text-2xl font-bold text-success">{activeJobs}</p>
+                    </div>
+                    <Zap className="h-8 w-8 text-success" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Jobs that are currently enabled and running on schedule</p></TooltipContent>
+          </Tooltip>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Runs</p>
-                  <p className="text-2xl font-bold">{totalRuns}</p>
-                </div>
-                <Timer className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Runs</p>
+                      <p className="text-2xl font-bold">{totalRuns}</p>
+                    </div>
+                    <Timer className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Cumulative execution count across all jobs</p></TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Jobs Table */}
@@ -240,10 +252,15 @@ export default function SchedulerPage() {
                   View and manage automated background tasks
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={fetchJobs}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={fetchJobs}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Reload the latest job status from the database</p></TooltipContent>
+              </Tooltip>
             </div>
           </CardHeader>
           <CardContent>
@@ -284,38 +301,58 @@ export default function SchedulerPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-mono text-sm">{job.schedule}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {parseSchedule(job.schedule)}
-                          </div>
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-1 cursor-default">
+                              <div className="font-mono text-sm">{job.schedule}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {parseSchedule(job.schedule)}
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Cron expression: {job.schedule}</p></TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         {job.last_run_at ? (
-                          <div className="space-y-1">
-                            <div className="text-sm">
-                              {formatDistanceToNow(new Date(job.last_run_at), { addSuffix: true })}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {format(new Date(job.last_run_at), 'MMM d, HH:mm')}
-                            </div>
-                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="space-y-1 cursor-default">
+                                <div className="text-sm">
+                                  {formatDistanceToNow(new Date(job.last_run_at), { addSuffix: true })}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {format(new Date(job.last_run_at), 'MMM d, HH:mm')}
+                                </div>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Last execution timestamp</p></TooltipContent>
+                          </Tooltip>
                         ) : (
                           <span className="text-muted-foreground">Never</span>
                         )}
                       </TableCell>
                       <TableCell>
                         {job.last_status === 'success' ? (
-                          <Badge className="bg-success/20 text-success border-success/30">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Success
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge className="bg-success/20 text-success border-success/30 cursor-default">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Success
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Last execution completed without errors</p></TooltipContent>
+                          </Tooltip>
                         ) : job.last_status === 'failed' ? (
-                          <Badge variant="destructive">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Failed
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="destructive" className="cursor-default">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Failed
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent><p>{job.last_error || 'Last execution failed — check error details below'}</p></TooltipContent>
+                          </Tooltip>
                         ) : job.last_status === 'running' ? (
                           <Badge className="bg-primary/20 text-primary border-primary/30">
                             <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
@@ -326,26 +363,43 @@ export default function SchedulerPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="font-mono">{job.run_count}</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="font-mono cursor-default">{job.run_count}</span>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Total number of times this job has been executed</p></TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => runJobNow(job)}
-                            disabled={runningJob === job.id}
-                          >
-                            {runningJob === job.id ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Play className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Switch
-                            checked={job.is_active}
-                            onCheckedChange={() => toggleJob(job)}
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => runJobNow(job)}
+                                disabled={runningJob === job.id}
+                              >
+                                {runningJob === job.id ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Play className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Run this job immediately</p></TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <Switch
+                                  checked={job.is_active}
+                                  onCheckedChange={() => toggleJob(job)}
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent><p>{job.is_active ? 'Pause this job' : 'Resume this job'}</p></TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

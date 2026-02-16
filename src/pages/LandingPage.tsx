@@ -1,6 +1,7 @@
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { 
   Plug2, 
   Zap, 
@@ -24,10 +25,17 @@ export default function LandingPage() {
         <div className="relative container mx-auto max-w-7xl px-4 py-24 md:py-32">
           <div className="max-w-3xl mx-auto text-center animate-fade-in">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary mb-8">
-              <Zap className="h-4 w-4" />
-              <span>Model Context Protocol Ready</span>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary mb-8 cursor-default">
+                  <Zap className="h-4 w-4" />
+                  <span>Model Context Protocol Ready</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Supports the MCP standard for AI-tool interoperability</p>
+              </TooltipContent>
+            </Tooltip>
             
             {/* Headline */}
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
@@ -45,17 +53,31 @@ export default function LandingPage() {
             
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button variant="glow" size="xl" asChild>
-                <Link to="/connectors" className="gap-2">
-                  Browse Connectors
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="xl" asChild>
-                <Link to="/dashboard">
-                  View Dashboard
-                </Link>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="glow" size="xl" asChild>
+                    <Link to="/connectors" className="gap-2">
+                      Browse Connectors
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Explore available integrations and connect via OAuth or API keys</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="xl" asChild>
+                    <Link to="/dashboard">
+                      View Dashboard
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Monitor active connections, jobs, and system health</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -78,31 +100,37 @@ export default function LandingPage() {
               icon={Plug2}
               title="Universal Connectors"
               description="OAuth 2.0 + PKCE, API keys, and MCP protocol support. Connect to any service."
+              tooltip="Supports multiple auth methods including OAuth 2.0 with PKCE for maximum security"
             />
             <FeatureCard
               icon={Code2}
               title="Tool Discovery"
               description="Automatically discover and execute tools from connected services and MCP servers."
+              tooltip="Tools are auto-discovered from MCP servers and REST endpoints on connection"
             />
             <FeatureCard
               icon={Activity}
               title="Real-time Pipelines"
               description="Live job status, event streaming, and instant feedback on every operation."
+              tooltip="Jobs stream events in real-time via Supabase Realtime subscriptions"
             />
             <FeatureCard
               icon={Database}
               title="Audit Logging"
               description="Complete audit trail for every action. Request/response logging with latency tracking."
+              tooltip="Every tool execution is logged with request/response data and latency metrics"
             />
             <FeatureCard
               icon={Shield}
               title="Security First"
               description="Encrypted secrets, RLS policies, rate limiting, and circuit breakers."
+              tooltip="AES-GCM encryption for secrets, row-level security, and automatic rate limiting"
             />
             <FeatureCard
               icon={Lock}
               title="Token Management"
               description="Automatic token refresh, revocation support, and secure secret storage."
+              tooltip="Tokens auto-refresh before expiry; secrets stored in encrypted vault"
             />
           </div>
         </div>
@@ -112,10 +140,10 @@ export default function LandingPage() {
       <section className="py-16 border-t border-border bg-muted/20">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <StatCard value="8+" label="Connectors" />
-            <StatCard value="20+" label="Tools" />
-            <StatCard value="100%" label="Type-safe" />
-            <StatCard value="<50ms" label="Latency" />
+            <StatCard value="8+" label="Connectors" tooltip="Pre-built integrations for popular services" />
+            <StatCard value="20+" label="Tools" tooltip="Executable actions across all connected services" />
+            <StatCard value="100%" label="Type-safe" tooltip="Full TypeScript coverage with auto-generated types" />
+            <StatCard value="<50ms" label="Latency" tooltip="Average tool execution overhead under 50 milliseconds" />
           </div>
         </div>
       </section>
@@ -130,12 +158,19 @@ export default function LandingPage() {
             Start connecting your services in minutes. OAuth flows, tool execution, 
             and real-time monitoring out of the box.
           </p>
-          <Button variant="glow" size="xl" asChild>
-            <Link to="/connectors" className="gap-2">
-              Get Started
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="glow" size="xl" asChild>
+                <Link to="/connectors" className="gap-2">
+                  Get Started
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Browse connectors and set up your first integration</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </section>
     </Layout>
@@ -145,28 +180,44 @@ export default function LandingPage() {
 function FeatureCard({ 
   icon: Icon, 
   title, 
-  description 
+  description,
+  tooltip
 }: { 
   icon: React.ComponentType<{ className?: string }>; 
   title: string; 
   description: string;
+  tooltip: string;
 }) {
   return (
-    <div className="connector-card p-6 group">
-      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-        <Icon className="h-6 w-6 text-primary" />
-      </div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="connector-card p-6 group cursor-default">
+          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-xs">
+        <p>{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
-function StatCard({ value, label }: { value: string; label: string }) {
+function StatCard({ value, label, tooltip }: { value: string; label: string; tooltip: string }) {
   return (
-    <div className="text-center">
-      <div className="text-3xl md:text-4xl font-bold text-gradient mb-2">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="text-center cursor-default">
+          <div className="text-3xl md:text-4xl font-bold text-gradient mb-2">{value}</div>
+          <div className="text-sm text-muted-foreground">{label}</div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }

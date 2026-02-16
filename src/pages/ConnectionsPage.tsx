@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConnectorIcon } from '@/components/connectors/ConnectorIcon';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -91,7 +92,6 @@ export default function ConnectionsPage() {
       .filter(c => c.connector);
   }, [connections, connectors]);
 
-  // Calculate stats
   const stats = useMemo(() => {
     const active = enrichedConnections.filter(c => c.status === 'active').length;
     const expired = enrichedConnections.filter(c => c.status === 'expired').length;
@@ -196,31 +196,51 @@ export default function ConnectionsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-foreground">{stats.total}</div>
-              <p className="text-sm text-muted-foreground">Total Connections</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-primary">{stats.active}</div>
-              <p className="text-sm text-muted-foreground">Active</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-destructive">{stats.expired}</div>
-              <p className="text-sm text-muted-foreground">Expired</p>
-            </CardContent>
-          </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-warning">{stats.expiringSoon}</div>
-            <p className="text-sm text-muted-foreground">Expiring Soon</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+                  <p className="text-sm text-muted-foreground">Total Connections</p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>All non-revoked connections across connectors</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold text-primary">{stats.active}</div>
+                  <p className="text-sm text-muted-foreground">Active</p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Connections with valid, non-expired tokens</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold text-destructive">{stats.expired}</div>
+                  <p className="text-sm text-muted-foreground">Expired</p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Connections with expired tokens that need refreshing</p></TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-default">
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold text-warning">{stats.expiringSoon}</div>
+                  <p className="text-sm text-muted-foreground">Expiring Soon</p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent><p>Active connections with tokens expiring within 30 minutes</p></TooltipContent>
+          </Tooltip>
+        </div>
 
         {/* Connections Table */}
         <Card>
@@ -236,28 +256,38 @@ export default function ConnectionsPage() {
               </div>
               {selectedIds.size > 0 && (
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleBulkRefresh}
-                    disabled={isBulkRefreshing}
-                  >
-                    {isBulkRefreshing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    Refresh Selected
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setShowBulkDisconnect(true)}
-                    disabled={isBulkDisconnecting}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Disconnect Selected
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBulkRefresh}
+                        disabled={isBulkRefreshing}
+                      >
+                        {isBulkRefreshing ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                        )}
+                        Refresh Selected
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Request new access tokens for selected connections</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setShowBulkDisconnect(true)}
+                        disabled={isBulkDisconnecting}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Disconnect Selected
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Revoke access for all selected connections</p></TooltipContent>
+                  </Tooltip>
                 </div>
               )}
             </div>
@@ -332,59 +362,93 @@ export default function ConnectionsPage() {
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {(connection.scopes || []).slice(0, 2).map((scope) => (
-                              <Badge key={scope} variant="secondary" className="text-xs">
-                                {scope}
-                              </Badge>
+                              <Tooltip key={scope}>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="secondary" className="text-xs cursor-default">
+                                    {scope}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent><p>OAuth scope: {scope}</p></TooltipContent>
+                              </Tooltip>
                             ))}
                             {(connection.scopes || []).length > 2 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{(connection.scopes || []).length - 2}
-                              </Badge>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="secondary" className="text-xs cursor-default">
+                                    +{(connection.scopes || []).length - 2}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{(connection.scopes || []).slice(2).join(', ')}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
                           {expiryInfo ? (
-                            <div className={cn(
-                              'text-sm',
-                              expiryInfo.isExpired ? 'text-destructive' : 'text-muted-foreground'
-                            )}>
-                              <div className="font-medium">{expiryInfo.timeText}</div>
-                              <div className="text-xs">{expiryInfo.formattedDate}</div>
-                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={cn(
+                                  'text-sm cursor-default',
+                                  expiryInfo.isExpired ? 'text-destructive' : 'text-muted-foreground'
+                                )}>
+                                  <div className="font-medium">{expiryInfo.timeText}</div>
+                                  <div className="text-xs">{expiryInfo.formattedDate}</div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{expiryInfo.isExpired ? 'Token has expired — refresh to restore access' : 'Token is still valid'}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           ) : (
                             <span className="text-muted-foreground text-sm">No expiry</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {connection.last_used_at ? (
-                            <span className="text-sm text-muted-foreground">
-                              {formatDistanceToNow(new Date(connection.last_used_at), { addSuffix: true })}
-                            </span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-sm text-muted-foreground cursor-default">
+                                  {formatDistanceToNow(new Date(connection.last_used_at), { addSuffix: true })}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Last tool execution using this connection</p>
+                              </TooltipContent>
+                            </Tooltip>
                           ) : (
                             <span className="text-sm text-muted-foreground">Never</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => refreshToken(connection.id)}
-                              disabled={isConnecting}
-                              title="Refresh token"
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => disconnectConnection(connection.id, connection.connector?.name || 'Unknown')}
-                              className="text-destructive hover:text-destructive"
-                              title="Disconnect"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => refreshToken(connection.id)}
+                                  disabled={isConnecting}
+                                >
+                                  <RefreshCw className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Refresh access token</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => disconnectConnection(connection.id, connection.connector?.name || 'Unknown')}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Disconnect and revoke access</p></TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>

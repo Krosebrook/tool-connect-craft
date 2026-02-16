@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { ConnectorIcon } from '@/components/connectors/ConnectorIcon';
 import { ToolExecutor } from '@/components/connectors/ToolExecutor';
 import { JobCard } from '@/components/connectors/JobCard';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import type { ToolSchema } from '@/types';
 import { 
   ArrowLeft, 
@@ -103,12 +104,19 @@ export default function ConnectorDetailPage() {
     <Layout>
       <div className="container mx-auto max-w-7xl px-4 py-8">
         {/* Back button */}
-        <Button asChild variant="ghost" size="sm" className="mb-6 -ml-2">
-          <Link to="/connectors" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Connectors
-          </Link>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant="ghost" size="sm" className="mb-6 -ml-2">
+              <Link to="/connectors" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Connectors
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Return to the connectors catalog</p>
+          </TooltipContent>
+        </Tooltip>
         
         {/* Connector Header */}
         <div className="connector-card p-6 mb-8">
@@ -127,56 +135,98 @@ export default function ConnectorDetailPage() {
               <p className="text-muted-foreground mb-4">{connectorData.description}</p>
               
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Code2 className="h-4 w-4" />
-                  {tools.length} tools
-                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center gap-1.5 cursor-default">
+                      <Code2 className="h-4 w-4" />
+                      {tools.length} tools
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{tools.length} executable tools discovered from this connector</p>
+                  </TooltipContent>
+                </Tooltip>
                 {connection?.last_used_at && (
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" />
-                    Last used {new Date(connection.last_used_at).toLocaleDateString()}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-1.5 cursor-default">
+                        <Clock className="h-4 w-4" />
+                        Last used {new Date(connection.last_used_at).toLocaleDateString()}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Most recent tool execution on this connector</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-                <span className="capitalize">{connectorData.auth_type} auth</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="capitalize cursor-default">{connectorData.auth_type} auth</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Authentication method: {connectorData.auth_type === 'oauth' ? 'OAuth 2.0 + PKCE' : connectorData.auth_type === 'api_key' ? 'API Key' : 'No authentication required'}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
               {isConnected ? (
                 <>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Settings className="h-4 w-4" />
-                    Configure
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={handleDisconnect}
-                    disabled={connectingState === 'disconnecting'}
-                  >
-                    {connectingState === 'disconnecting' ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                    Disconnect
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Settings className="h-4 w-4" />
+                        Configure
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Modify connector settings and permissions</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={handleDisconnect}
+                        disabled={connectingState === 'disconnecting'}
+                      >
+                        {connectingState === 'disconnecting' ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        Disconnect
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Revoke access tokens and disconnect this service</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </>
               ) : (
-                <Button 
-                  variant="glow" 
-                  className="gap-2"
-                  onClick={handleConnect}
-                  disabled={connectingState === 'connecting'}
-                >
-                  {connectingState === 'connecting' ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plug2 className="h-4 w-4" />
-                  )}
-                  Connect
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="glow" 
+                      className="gap-2"
+                      onClick={handleConnect}
+                      disabled={connectingState === 'connecting'}
+                    >
+                      {connectingState === 'connecting' ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plug2 className="h-4 w-4" />
+                      )}
+                      Connect
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Start the OAuth flow to connect to {connectorData.name}</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
@@ -185,14 +235,28 @@ export default function ConnectorDetailPage() {
         {/* Tabs */}
         <Tabs defaultValue="tools" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="tools" className="gap-2">
-              <Code2 className="h-4 w-4" />
-              Tools ({tools.length})
-            </TabsTrigger>
-            <TabsTrigger value="jobs" className="gap-2">
-              <Clock className="h-4 w-4" />
-              Recent Jobs ({connectorJobs.length})
-            </TabsTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="tools" className="gap-2">
+                  <Code2 className="h-4 w-4" />
+                  Tools ({tools.length})
+                </TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Browse and execute available tools for this connector</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="jobs" className="gap-2">
+                  <Clock className="h-4 w-4" />
+                  Recent Jobs ({connectorJobs.length})
+                </TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View past tool executions and their results</p>
+              </TooltipContent>
+            </Tooltip>
           </TabsList>
           
           <TabsContent value="tools">
@@ -202,20 +266,26 @@ export default function ConnectorDetailPage() {
                 <div className="lg:col-span-1 space-y-2">
                   <h3 className="text-sm font-medium text-muted-foreground mb-3">Available Tools</h3>
                   {tools.map((tool) => (
-                    <button
-                      key={tool.id}
-                      onClick={() => setSelectedTool(tool.name)}
-                      className={`w-full text-left p-4 rounded-lg border transition-all ${
-                        activeTool?.name === tool.name
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border bg-card hover:border-primary/50'
-                      }`}
-                    >
-                      <div className="font-mono text-sm text-foreground">{tool.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {tool.description}
-                      </div>
-                    </button>
+                    <Tooltip key={tool.id}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setSelectedTool(tool.name)}
+                          className={`w-full text-left p-4 rounded-lg border transition-all ${
+                            activeTool?.name === tool.name
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border bg-card hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="font-mono text-sm text-foreground">{tool.name}</div>
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {tool.description}
+                          </div>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p>{tool.description || 'Click to configure and execute this tool'}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
                 </div>
                 
