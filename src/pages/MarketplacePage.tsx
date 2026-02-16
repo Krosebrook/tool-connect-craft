@@ -35,6 +35,7 @@ export interface MarketplaceConnector {
   tags: string[];
   popularity: number; // 1-5
   toolCount: number;
+  isNew?: boolean;
   tools: { name: string; description: string; schema: Record<string, unknown> }[];
 }
 
@@ -366,6 +367,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['chat', 'community', 'gaming', 'bots'],
     popularity: 4,
     toolCount: 4,
+    isNew: true,
     tools: [
       { name: 'send_message', description: 'Send a message to a channel', schema: { type: 'object', properties: { channel_id: { type: 'string' }, content: { type: 'string' }, embeds: { type: 'array', description: 'Rich embed objects' } }, required: ['channel_id', 'content'] } },
       { name: 'list_guilds', description: 'List servers the bot is in', schema: { type: 'object', properties: { limit: { type: 'number', default: 20 } } } },
@@ -388,6 +390,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['tasks', 'project-management', 'teams', 'goals'],
     popularity: 4,
     toolCount: 4,
+    isNew: true,
     tools: [
       { name: 'list_tasks', description: 'List tasks in a project', schema: { type: 'object', properties: { project: { type: 'string' }, assignee: { type: 'string' }, completed_since: { type: 'string' } }, required: ['project'] } },
       { name: 'create_task', description: 'Create a new task', schema: { type: 'object', properties: { name: { type: 'string' }, projects: { type: 'array' }, assignee: { type: 'string' }, due_on: { type: 'string' }, notes: { type: 'string' } }, required: ['name'] } },
@@ -404,6 +407,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['project-management', 'work-os', 'boards', 'automation'],
     popularity: 4,
     toolCount: 4,
+    isNew: true,
     tools: [
       { name: 'list_boards', description: 'List all boards', schema: { type: 'object', properties: { limit: { type: 'number', default: 25 }, page: { type: 'number', default: 1 } } } },
       { name: 'list_items', description: 'List items in a board', schema: { type: 'object', properties: { board_id: { type: 'string' }, limit: { type: 'number', default: 25 } }, required: ['board_id'] } },
@@ -426,6 +430,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['support', 'chat', 'customer-engagement', 'helpdesk'],
     popularity: 4,
     toolCount: 4,
+    isNew: true,
     tools: [
       { name: 'list_conversations', description: 'List conversations', schema: { type: 'object', properties: { order: { type: 'string', enum: ['created_at', 'updated_at'] }, limit: { type: 'number', default: 20 } } } },
       { name: 'reply_conversation', description: 'Reply to a conversation', schema: { type: 'object', properties: { conversation_id: { type: 'string' }, body: { type: 'string' }, message_type: { type: 'string', enum: ['comment', 'note'], default: 'comment' } }, required: ['conversation_id', 'body'] } },
@@ -631,15 +636,20 @@ export default function MarketplacePage() {
                 key={connector.slug}
                 className="group relative overflow-hidden transition-all hover:shadow-lg hover:border-primary/30"
               >
-                {isInstalled && (
-                  <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 flex gap-1.5">
+                  {connector.isNew && (
+                    <Badge className="gap-1 text-xs bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/15">
+                      <Sparkles className="h-3 w-3" />
+                      New
+                    </Badge>
+                  )}
+                  {isInstalled && (
                     <Badge variant="secondary" className="gap-1 text-xs bg-primary/10 text-primary border-0">
                       <Check className="h-3 w-3" />
                       Installed
                     </Badge>
-                  </div>
-                )}
-
+                  )}
+                </div>
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
                     <ConnectorIcon slug={connector.slug} name={connector.name} className="h-10 w-10 shrink-0" />
