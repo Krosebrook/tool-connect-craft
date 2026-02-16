@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface OAuthStartResponse {
@@ -24,8 +25,6 @@ interface OAuthState {
   error: string | null;
 }
 
-// Internal user ID for this internal app
-const INTERNAL_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 // Storage keys for OAuth state
 const OAUTH_STATE_KEY = 'oauth_state';
@@ -38,6 +37,7 @@ const OAUTH_CONNECTOR_KEY = 'oauth_connector';
  */
 export function useOAuthFlow(onConnectionComplete?: () => void) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [oauthState, setOAuthState] = useState<OAuthState>({
     isConnecting: false,
     connectorId: null,
@@ -160,7 +160,6 @@ export function useOAuthFlow(onConnectionComplete?: () => void) {
         {
           body: {
             connectorId,
-            userId: INTERNAL_USER_ID,
             redirectUri,
           },
         }

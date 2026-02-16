@@ -4,12 +4,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ConnectorProvider } from "@/context/ConnectorContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazy, Suspense } from "react";
 import { PageLoader } from "@/components/ui/loading-spinner";
 
-// Lazy load pages for code splitting
+// Lazy load pages
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const ConnectorsPage = lazy(() => import("./pages/ConnectorsPage"));
 const ConnectorDetailPage = lazy(() => import("./pages/ConnectorDetailPage"));
 const AddMCPPage = lazy(() => import("./pages/AddMCPPage"));
@@ -25,53 +29,54 @@ const MarketplaceDetailPage = lazy(() => import("./pages/MarketplaceDetailPage")
 const QuickSetupGuidePage = lazy(() => import("./pages/QuickSetupGuidePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Configure React Query with sensible defaults
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
       retry: 2,
       refetchOnWindowFocus: false,
     },
-    mutations: {
-      retry: 1,
-    },
+    mutations: { retry: 1 },
   },
 });
 
-/**
- * Root application component.
- * Sets up providers, routing, and lazy loading for all pages.
- */
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={300}>
         <BrowserRouter>
-          <ConnectorProvider>
-            <Toaster />
-            <Sonner position="bottom-right" />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/connectors" element={<ConnectorsPage />} />
-                <Route path="/connectors/add-mcp" element={<AddMCPPage />} />
-                <Route path="/connectors/:slug" element={<ConnectorDetailPage />} />
-                <Route path="/connections" element={<ConnectionsPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/scheduler" element={<SchedulerPage />} />
-                <Route path="/webhooks" element={<WebhooksPage />} />
-                <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
-                <Route path="/settings/security" element={<SecuritySettingsPage />} />
-                <Route path="/settings/mcp-endpoint" element={<MCPEndpointPage />} />
-                <Route path="/marketplace" element={<MarketplacePage />} />
-                <Route path="/marketplace/:slug" element={<MarketplaceDetailPage />} />
-                <Route path="/guide" element={<QuickSetupGuidePage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </ConnectorProvider>
+          <AuthProvider>
+            <ConnectorProvider>
+              <Toaster />
+              <Sonner position="bottom-right" />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/guide" element={<QuickSetupGuidePage />} />
+
+                  {/* Protected routes */}
+                  <Route path="/connectors" element={<ProtectedRoute><ConnectorsPage /></ProtectedRoute>} />
+                  <Route path="/connectors/add-mcp" element={<ProtectedRoute><AddMCPPage /></ProtectedRoute>} />
+                  <Route path="/connectors/:slug" element={<ProtectedRoute><ConnectorDetailPage /></ProtectedRoute>} />
+                  <Route path="/connections" element={<ProtectedRoute><ConnectionsPage /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                  <Route path="/scheduler" element={<ProtectedRoute><SchedulerPage /></ProtectedRoute>} />
+                  <Route path="/webhooks" element={<ProtectedRoute><WebhooksPage /></ProtectedRoute>} />
+                  <Route path="/settings/notifications" element={<ProtectedRoute><NotificationPreferencesPage /></ProtectedRoute>} />
+                  <Route path="/settings/security" element={<ProtectedRoute><SecuritySettingsPage /></ProtectedRoute>} />
+                  <Route path="/settings/mcp-endpoint" element={<ProtectedRoute><MCPEndpointPage /></ProtectedRoute>} />
+                  <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
+                  <Route path="/marketplace/:slug" element={<ProtectedRoute><MarketplaceDetailPage /></ProtectedRoute>} />
+
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ConnectorProvider>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

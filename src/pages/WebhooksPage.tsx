@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,10 +39,10 @@ interface WebhookDelivery {
   delivered_at: string | null;
 }
 
-const INTERNAL_USER_ID = '00000000-0000-0000-0000-000000000001';
-
 export default function WebhooksPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const userId = user?.id;
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +53,7 @@ export default function WebhooksPage() {
     const { data, error } = await supabase
       .from('webhooks')
       .select('*')
-      .eq('user_id', INTERNAL_USER_ID)
+      .eq('user_id', userId!)
       .order('created_at', { ascending: false });
 
     if (error) { console.error('Error fetching webhooks:', error); return; }
@@ -104,7 +105,7 @@ export default function WebhooksPage() {
       if (error) { toast({ title: 'Error', description: 'Failed to update webhook', variant: 'destructive' }); return; }
       toast({ title: 'Webhook Updated', description: `${data.name} has been updated` });
     } else {
-      const { error } = await supabase.from('webhooks').insert({ ...record, user_id: INTERNAL_USER_ID, is_active: true } as any);
+      const { error } = await supabase.from('webhooks').insert({ ...record, user_id: userId!, is_active: true } as any);
       if (error) { toast({ title: 'Error', description: 'Failed to create webhook', variant: 'destructive' }); return; }
       toast({ title: 'Webhook Created', description: `${data.name} has been configured` });
     }
