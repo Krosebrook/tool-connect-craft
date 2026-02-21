@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Connector uses ${connector.auth_type} authentication, not OAuth`,
+          error: "This connector does not support OAuth authentication",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: `OAuth not supported for provider: ${providerSlug}`,
+          error: "OAuth is not available for this connector",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -190,10 +190,11 @@ Deno.serve(async (req) => {
       Deno.env.get(`${providerSlug.toUpperCase()}_CLIENT_ID`);
 
     if (!clientId) {
+      console.error(`OAuth client ID not configured for ${providerSlug}`);
       return new Response(
         JSON.stringify({
           success: false,
-          error: `OAuth client ID not configured for ${providerSlug}`,
+          error: "OAuth is not properly configured for this connector",
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -268,7 +269,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Internal server error",
+        error: "Failed to start authentication. Please try again.",
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

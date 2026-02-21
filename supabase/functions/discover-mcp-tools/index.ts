@@ -119,9 +119,8 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("discover-mcp-tools error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "Failed to discover tools" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
