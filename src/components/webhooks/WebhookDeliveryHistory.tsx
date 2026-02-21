@@ -48,8 +48,6 @@ interface WebhookDeliveryHistoryProps {
   onRefresh: () => void;
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export function WebhookDeliveryHistory({ 
   deliveries, 
@@ -78,15 +76,10 @@ export function WebhookDeliveryHistory({
   const retryDelivery = async (delivery: WebhookDelivery) => {
     setRetryingId(delivery.id);
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/retry-webhook`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-        },
-        body: JSON.stringify({ deliveryId: delivery.id }),
+      const { data: result, error } = await supabase.functions.invoke('retry-webhook', {
+        body: { deliveryId: delivery.id },
       });
-      const result = await response.json();
+      if (error) throw error;
       if (result.success) {
         toast({ title: 'Retry Successful', description: `Delivered on attempt ${result.attempts}` });
       } else {
@@ -110,12 +103,10 @@ export function WebhookDeliveryHistory({
 
     for (const delivery of failedDeliveries) {
       try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/retry-webhook`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-          body: JSON.stringify({ deliveryId: delivery.id }),
+        const { data: result, error } = await supabase.functions.invoke('retry-webhook', {
+          body: { deliveryId: delivery.id },
         });
-        const result = await response.json();
+        if (error) throw error;
         if (result.success) succeeded++;
         else failed++;
       } catch {
