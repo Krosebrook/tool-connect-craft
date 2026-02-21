@@ -294,6 +294,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['payments', 'billing', 'subscriptions', 'invoices'],
     popularity: 5,
     toolCount: 5,
+    isNew: true,
     tools: [
       { name: 'list_customers', description: 'List customers', schema: { type: 'object', properties: { limit: { type: 'number', default: 10 }, email: { type: 'string', description: 'Filter by email' } } } },
       { name: 'create_customer', description: 'Create a new customer', schema: { type: 'object', properties: { email: { type: 'string' }, name: { type: 'string' }, description: { type: 'string' } }, required: ['email'] } },
@@ -311,6 +312,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['sms', 'voice', 'phone', 'messaging'],
     popularity: 4,
     toolCount: 4,
+    isNew: true,
     tools: [
       { name: 'send_sms', description: 'Send an SMS message', schema: { type: 'object', properties: { to: { type: 'string', description: 'Recipient phone number' }, from: { type: 'string', description: 'Twilio phone number' }, body: { type: 'string', description: 'Message body' } }, required: ['to', 'from', 'body'] } },
       { name: 'list_messages', description: 'List sent/received messages', schema: { type: 'object', properties: { limit: { type: 'number', default: 20 }, to: { type: 'string' }, from: { type: 'string' } } } },
@@ -327,6 +329,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['email', 'transactional', 'marketing', 'newsletters'],
     popularity: 4,
     toolCount: 4,
+    isNew: true,
     tools: [
       { name: 'send_email', description: 'Send a transactional email', schema: { type: 'object', properties: { to: { type: 'string' }, from: { type: 'string' }, subject: { type: 'string' }, html: { type: 'string', description: 'HTML body' }, text: { type: 'string', description: 'Plain text body' } }, required: ['to', 'from', 'subject'] } },
       { name: 'list_contacts', description: 'List marketing contacts', schema: { type: 'object', properties: { page_size: { type: 'number', default: 50 } } } },
@@ -343,6 +346,7 @@ export const MARKETPLACE_CONNECTORS: MarketplaceConnector[] = [
     tags: ['issues', 'project-management', 'agile', 'engineering'],
     popularity: 4,
     toolCount: 5,
+    isNew: true,
     tools: [
       { name: 'list_issues', description: 'List issues with optional filters', schema: { type: 'object', properties: { teamId: { type: 'string' }, status: { type: 'string' }, assigneeId: { type: 'string' }, limit: { type: 'number', default: 25 } } } },
       { name: 'create_issue', description: 'Create a new issue', schema: { type: 'object', properties: { title: { type: 'string' }, description: { type: 'string' }, teamId: { type: 'string' }, priority: { type: 'number', description: '0=None, 1=Urgent, 2=High, 3=Medium, 4=Low' }, assigneeId: { type: 'string' } }, required: ['title', 'teamId'] } },
