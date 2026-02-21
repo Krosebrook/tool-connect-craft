@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Internal server error",
+        error: "Health check failed",
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

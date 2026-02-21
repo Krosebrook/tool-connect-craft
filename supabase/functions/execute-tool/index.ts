@@ -216,11 +216,61 @@ async function checkRateLimits(
   return { allowed: true, headers };
 }
 
+// Input sanitization constants
+const MAX_STRING_LENGTH = 10_000; // 10KB per string argument
+const MAX_ARGS_COUNT = 50; // Maximum number of arguments
+const MAX_TOTAL_PAYLOAD_SIZE = 100_000; // 100KB total payload
+
+// Sanitize a string value by enforcing length limits
+function sanitizeStringValue(value: string, fieldName: string): { sanitized: string; error?: string } {
+  if (value.length > MAX_STRING_LENGTH) {
+    return { sanitized: value, error: `Field '${fieldName}' exceeds maximum length of ${MAX_STRING_LENGTH} characters` };
+  }
+  return { sanitized: value };
+}
+
+// Deep sanitize arguments object
+function sanitizeArgs(args: Record<string, unknown>): { sanitized: Record<string, unknown>; errors: string[] } {
+  const errors: string[] = [];
+
+  // Check argument count
+  const keys = Object.keys(args);
+  if (keys.length > MAX_ARGS_COUNT) {
+    errors.push(`Too many arguments: ${keys.length} exceeds maximum of ${MAX_ARGS_COUNT}`);
+    return { sanitized: args, errors };
+  }
+
+  // Check total payload size
+  const payloadSize = JSON.stringify(args).length;
+  if (payloadSize > MAX_TOTAL_PAYLOAD_SIZE) {
+    errors.push(`Payload size ${payloadSize} exceeds maximum of ${MAX_TOTAL_PAYLOAD_SIZE} bytes`);
+    return { sanitized: args, errors };
+  }
+
+  // Sanitize individual string fields
+  for (const [key, value] of Object.entries(args)) {
+    if (typeof value === "string") {
+      const result = sanitizeStringValue(value, key);
+      if (result.error) {
+        errors.push(result.error);
+      }
+    }
+  }
+
+  return { sanitized: args, errors };
+}
+
 // Validate tool arguments against schema
 function validateArgs(
   args: Record<string, unknown>,
   schema: ToolSchema | null
 ): { valid: boolean; errors: string[] } {
+  // First sanitize inputs
+  const sanitization = sanitizeArgs(args);
+  if (sanitization.errors.length > 0) {
+    return { valid: false, errors: sanitization.errors };
+  }
+
   if (!schema || !schema.properties) {
     return { valid: true, errors: [] };
   }
@@ -531,10 +581,9 @@ Deno.serve(async (req) => {
     }
   } catch (error) {
     console.error("Execute tool error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
 
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: "An internal error occurred while executing the tool" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
