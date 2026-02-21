@@ -8,6 +8,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
 import React from 'react';
 import { ConnectorProvider, useConnectors } from '../ConnectorContext';
+import { AuthProvider } from '../AuthContext';
+
+function WithAuth({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <ConnectorProvider>{children}</ConnectorProvider>
+    </AuthProvider>
+  );
+}
 
 describe('ConnectorProvider', () => {
   it('renders children', async () => {
@@ -17,14 +26,13 @@ describe('ConnectorProvider', () => {
     }
 
     render(
-      <ConnectorProvider>
+      <WithAuth>
         <Child />
-      </ConnectorProvider>
+      </WithAuth>
     );
 
     expect(screen.getByTestId('child')).toBeInTheDocument();
 
-    // Wait for async loading to settle
     await waitFor(() => {
       expect(screen.getByTestId('child')).toBeInTheDocument();
     });
@@ -37,12 +45,11 @@ describe('ConnectorProvider', () => {
     }
 
     render(
-      <ConnectorProvider>
+      <WithAuth>
         <Consumer />
-      </ConnectorProvider>
+      </WithAuth>
     );
 
-    // Initially loading is true, then transitions to false
     await waitFor(() => {
       expect(screen.getByTestId('loading').textContent).toBe('false');
     });
@@ -55,9 +62,9 @@ describe('ConnectorProvider', () => {
     }
 
     render(
-      <ConnectorProvider>
+      <WithAuth>
         <Consumer />
-      </ConnectorProvider>
+      </WithAuth>
     );
 
     await waitFor(() => {
@@ -72,9 +79,9 @@ describe('ConnectorProvider', () => {
     }
 
     render(
-      <ConnectorProvider>
+      <WithAuth>
         <Consumer />
-      </ConnectorProvider>
+      </WithAuth>
     );
 
     await waitFor(() => {
@@ -96,9 +103,9 @@ describe('ConnectorProvider', () => {
     }
 
     render(
-      <ConnectorProvider>
+      <WithAuth>
         <Consumer />
-      </ConnectorProvider>
+      </WithAuth>
     );
 
     await waitFor(() => {
@@ -109,7 +116,6 @@ describe('ConnectorProvider', () => {
 
 describe('useConnectors', () => {
   it('throws when used outside ConnectorProvider', () => {
-    // Suppress console.error for expected error
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(() => {
@@ -121,7 +127,9 @@ describe('useConnectors', () => {
 
   it('does not throw when used inside ConnectorProvider', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <ConnectorProvider>{children}</ConnectorProvider>
+      <AuthProvider>
+        <ConnectorProvider>{children}</ConnectorProvider>
+      </AuthProvider>
     );
 
     expect(() => {

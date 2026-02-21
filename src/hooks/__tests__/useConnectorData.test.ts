@@ -4,7 +4,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
+import { createAuthWrapper } from '@/test/test-utils';
+
+const wrapper = createAuthWrapper();
 
 describe('useConnectorData - mocked tests', () => {
   beforeEach(() => {
@@ -19,7 +22,7 @@ describe('useConnectorData - mocked tests', () => {
   it('hook returns expected shape', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -43,7 +46,7 @@ describe('useConnectorData - mocked tests', () => {
   it('connectors is initially an empty array', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -55,7 +58,7 @@ describe('useConnectorData - mocked tests', () => {
   it('tools is initially an empty Map', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -67,9 +70,8 @@ describe('useConnectorData - mocked tests', () => {
   it('loading transitions from true to false', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
-    // Initially loading
     expect(result.current.loading).toBe(true);
 
     await waitFor(() => {
@@ -80,7 +82,7 @@ describe('useConnectorData - mocked tests', () => {
   it('getToolsForConnector returns empty array for unknown connector', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -93,7 +95,7 @@ describe('useConnectorData - mocked tests', () => {
   it('getConnectorWithConnection returns undefined for unknown connector', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -108,7 +110,7 @@ describe('useConnectorData - method signatures', () => {
   it('connect is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -120,7 +122,7 @@ describe('useConnectorData - method signatures', () => {
   it('disconnect is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -132,7 +134,7 @@ describe('useConnectorData - method signatures', () => {
   it('executeTool is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -144,7 +146,7 @@ describe('useConnectorData - method signatures', () => {
   it('fetchEventsForJob is a function', async () => {
     const { useConnectorData } = await import('../useConnectorData');
 
-    const { result } = renderHook(() => useConnectorData());
+    const { result } = renderHook(() => useConnectorData(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

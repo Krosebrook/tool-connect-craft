@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useOAuthFlow } from '../useOAuthFlow';
+import { createAuthWrapper } from '@/test/test-utils';
+
+const wrapper = createAuthWrapper();
 
 // Mock toast
 const mockToast = vi.fn();
@@ -15,6 +18,10 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
     from: () => ({ update: mockUpdate }),
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+    },
   },
 }));
 
@@ -25,7 +32,6 @@ describe('useOAuthFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
-    // Mock window.location for tests
     Object.defineProperty(window, 'location', {
       writable: true,
       value: { ...originalLocation, href: 'http://localhost:3000', origin: 'http://localhost:3000', pathname: '/', search: '' },
@@ -34,7 +40,7 @@ describe('useOAuthFlow', () => {
   });
 
   it('returns initial state', () => {
-    const { result } = renderHook(() => useOAuthFlow());
+    const { result } = renderHook(() => useOAuthFlow(), { wrapper });
     expect(result.current.isConnecting).toBe(false);
     expect(result.current.connectorId).toBeNull();
     expect(result.current.error).toBeNull();
@@ -55,7 +61,7 @@ describe('useOAuthFlow', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useOAuthFlow());
+      const { result } = renderHook(() => useOAuthFlow(), { wrapper });
 
       await act(async () => {
         await result.current.startOAuthFlow('google-connector-id');
@@ -64,7 +70,6 @@ describe('useOAuthFlow', () => {
       expect(mockInvoke).toHaveBeenCalledWith('oauth-start', {
         body: {
           connectorId: 'google-connector-id',
-          userId: '00000000-0000-0000-0000-000000000001',
           redirectUri: 'http://localhost:3000/connectors',
         },
       });
@@ -80,7 +85,7 @@ describe('useOAuthFlow', () => {
         error: { message: 'Provider not configured' },
       });
 
-      const { result } = renderHook(() => useOAuthFlow());
+      const { result } = renderHook(() => useOAuthFlow(), { wrapper });
 
       await act(async () => {
         await result.current.startOAuthFlow('bad-connector');
@@ -100,7 +105,7 @@ describe('useOAuthFlow', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useOAuthFlow());
+      const { result } = renderHook(() => useOAuthFlow(), { wrapper });
 
       await act(async () => {
         await result.current.startOAuthFlow('connector-id');
@@ -113,7 +118,7 @@ describe('useOAuthFlow', () => {
   describe('disconnectConnection', () => {
     it('updates connection status and shows toast', async () => {
       const onComplete = vi.fn();
-      const { result } = renderHook(() => useOAuthFlow(onComplete));
+      const { result } = renderHook(() => useOAuthFlow(onComplete), { wrapper });
 
       await act(async () => {
         await result.current.disconnectConnection('conn-123', 'Gmail');
@@ -134,7 +139,7 @@ describe('useOAuthFlow', () => {
     it('invokes token-refresh and shows success toast', async () => {
       mockInvoke.mockResolvedValue({ data: { success: true }, error: null });
       const onComplete = vi.fn();
-      const { result } = renderHook(() => useOAuthFlow(onComplete));
+      const { result } = renderHook(() => useOAuthFlow(onComplete), { wrapper });
 
       await act(async () => {
         await result.current.refreshToken('conn-456');
@@ -155,7 +160,7 @@ describe('useOAuthFlow', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useOAuthFlow());
+      const { result } = renderHook(() => useOAuthFlow(), { wrapper });
 
       await act(async () => {
         await result.current.refreshToken('conn-789');
